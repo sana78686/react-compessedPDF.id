@@ -1,11 +1,10 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, lazy, Suspense, startTransition } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
-import { supportedLangs, langOptions } from '../i18n/translations'
-import { getPages } from '../api/cms'
-import { CmsPagesSection } from '../components/CmsPagesSection'
-import Footer from '../components/Footer'
+import { SeoHead } from '../components/SeoHead'
 import './HomePage.css'
+
+const LandingBelowFold = lazy(() => import('./LandingBelowFold'))
 
 const STEP_UPLOAD = 1
 const STEP_SETTINGS = 2
@@ -40,35 +39,24 @@ function HomePage() {
   const [compressedBlob, setCompressedBlob] = useState(null)
   const [resultStats, setResultStats] = useState(null)
   const [resultFileName, setResultFileName] = useState('')
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false)
-  const [cmsPages, setCmsPages] = useState([])
   const fileInputRef = useRef(null)
-  const langDropdownRef = useRef(null)
-
-  const headerPages = cmsPages.filter((p) => p.placement === 'header' || p.placement === 'both')
-  const footerPages = cmsPages.filter((p) => p.placement === 'footer' || p.placement === 'both')
+  const [faqOpenIndex, setFaqOpenIndex] = useState(null)
+  const [showBelowFold, setShowBelowFold] = useState(false)
 
   useEffect(() => {
     document.documentElement.lang = lang
   }, [lang])
 
+  /* Defer below-the-fold content to reduce TBT on mobile (Lighthouse Performance) */
   useEffect(() => {
-    getPages()
-      .then((res) => setCmsPages(res.pages || []))
-      .catch(() => setCmsPages([]))
-  }, [])
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target)) {
-        setLangDropdownOpen(false)
-      }
+    if (!isCompressPage) {
+      const schedule = () => startTransition(() => setShowBelowFold(true))
+      const id = typeof requestIdleCallback !== 'undefined'
+        ? requestIdleCallback(schedule, { timeout: 1500 })
+        : setTimeout(schedule, 100)
+      return () => (typeof cancelIdleCallback !== 'undefined' ? cancelIdleCallback(id) : clearTimeout(id))
     }
-    if (langDropdownOpen) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [langDropdownOpen])
+  }, [isCompressPage])
 
   // Sync URL with state: on /compress/result with no result data -> back to settings
   useEffect(() => {
@@ -311,80 +299,26 @@ function HomePage() {
     navigate(`/${lang}`, { replace: true })
   }
 
-  const isCompressActive = pathname === `/${lang}` || pathname === `/${lang}/compress` || pathname === `/${lang}/compress/result`
+  const faqItems = [
+    { q: t('landing.faq1Q'), a: t('landing.faq1A') },
+    { q: t('landing.faq2Q'), a: t('landing.faq2A') },
+    { q: t('landing.faq3Q'), a: t('landing.faq3A') },
+    { q: t('landing.faq4Q'), a: t('landing.faq4A') },
+  ]
 
   return (
     <div className="home-page">
-      <header className="header">
-        <div className="header-inner">
-          <a href={`/${lang}`} className="logo" aria-label={t('nav.home')}>
-            compressedPDF
-          </a>
-          <nav className="nav" aria-label="Main navigation">
-            <a href={`/${lang}/merge`}>{t('nav.merge')}</a>
-            <a href={`/${lang}/split`}>{t('nav.split')}</a>
-            <a href={`/${lang}`} className={isCompressActive ? 'nav-active' : ''}>{t('nav.compress')}</a>
-            <a href={`/${lang}/convert`}>{t('nav.convert')}</a>
-            {headerPages.map((p) => (
-              <a key={p.id} href={`/${lang}/page/${p.slug}`}>{p.title}</a>
-            ))}
-            <a href={`/${lang}/tools`}>{t('nav.allTools')}</a>
-          </nav>
-          <div className="header-actions">
-            <div className="lang-dropdown" ref={langDropdownRef}>
-              <button
-                type="button"
-                className="lang-dropdown-trigger"
-                onClick={() => setLangDropdownOpen((open) => !open)}
-                aria-expanded={langDropdownOpen}
-                aria-haspopup="listbox"
-                aria-label="Select language"
-              >
-                <span className="lang-dropdown-flag">{langOptions[lang]?.flag ?? '🌐'}</span>
-                <span className="lang-dropdown-label">{langOptions[lang]?.label ?? lang.toUpperCase()}</span>
-                <span className="lang-dropdown-chevron" aria-hidden>▼</span>
-              </button>
-              {langDropdownOpen && (
-                <ul className="lang-dropdown-menu" role="listbox">
-                  {supportedLangs.map((l) => (
-                    <li key={l} role="option" aria-selected={lang === l}>
-                      <a
-                        href={pathname.replace(new RegExp(`^/${lang}(/|$)`), `/${l}$1`)}
-                        className={`lang-dropdown-item ${lang === l ? 'lang-dropdown-item--active' : ''}`}
-                        onClick={() => setLangDropdownOpen(false)}
-                      >
-                        <span className="lang-dropdown-item-flag">{langOptions[l]?.flag ?? '🌐'}</span>
-                        <span className="lang-dropdown-item-label">{langOptions[l]?.label ?? l.toUpperCase()}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <a href={`/${lang}/login`}>{t('nav.login')}</a>
-            <a href={`/${lang}/tools`} className="icon-more-tools" aria-label={t('nav.allTools')} title={t('nav.allTools')}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <rect x="3" y="3" width="5" height="5" rx="0.5" />
-                <rect x="10" y="3" width="5" height="5" rx="0.5" />
-                <rect x="17" y="3" width="5" height="5" rx="0.5" />
-                <rect x="3" y="10" width="5" height="5" rx="0.5" />
-                <rect x="10" y="10" width="5" height="5" rx="0.5" />
-                <rect x="17" y="10" width="5" height="5" rx="0.5" />
-                <rect x="3" y="17" width="5" height="5" rx="0.5" />
-                <rect x="10" y="17" width="5" height="5" rx="0.5" />
-                <rect x="17" y="17" width="5" height="5" rx="0.5" />
-              </svg>
-            </a>
-          </div>
-        </div>
-      </header>
-
-      <main id="main-content" className="main" tabIndex="-1">
-        <h1 className="main-title">{t('title')}</h1>
-        <p className="main-subtitle">
-          {t('subtitle')}
-        </p>
-
+      <SeoHead
+        title={t('title')}
+        description={t('subtitle')}
+      />
+      <main id="main-content" className={`main ${!isCompressPage ? 'main--landing' : ''}`} tabIndex="-1">
+        {isCompressPage && (
+          <>
+            <h1 className="main-title">{t('title')}</h1>
+            <p className="main-subtitle">{t('subtitle')}</p>
+          </>
+        )}
         <input
           ref={fileInputRef}
           id="pdf-file-input"
@@ -396,43 +330,62 @@ function HomePage() {
           aria-label={t('ariaSelectPdf')}
         />
 
-        {/* Step 1: Upload */}
         {!isCompressPage && (
-          <div
-            className={`upload-zone ${isDragging ? 'upload-zone--dragging' : ''}`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <div className="upload-actions">
-              <button
-                type="button"
-                className="btn-select-pdf"
-                onClick={triggerFileInput}
-                aria-label={t('ariaSelectPdf')}
+          <>
+            {/* SEO: Upload section first – main CTA above the fold */}
+            <section id="compress-tool" className="landing-upload-section landing-upload-section--first" aria-labelledby="landing-select-heading">
+              <h1 id="landing-select-heading" className="landing-upload-heading">{t('landing.readySubtitle')}</h1>
+              <div
+                className={`upload-zone ${isDragging ? 'upload-zone--dragging' : ''}`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
               >
-                {t('selectPdf')}
-              </button>
-              <div className="upload-icons">
-                <button type="button" className="icon-btn" aria-label={t('fromCloud')} title={t('fromCloud')}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-                    <path d="M12 16v-8M9 11l3-3 3 3" />
-                  </svg>
-                </button>
-                <button type="button" className="icon-btn" aria-label={t('otherSources')} title={t('otherSources')}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                  </svg>
-                </button>
+                <div className="upload-actions">
+                  <button
+                    type="button"
+                    className="btn-select-pdf"
+                    onClick={triggerFileInput}
+                    aria-label={t('ariaSelectPdf')}
+                  >
+                    {t('selectPdf')}
+                  </button>
+                  <div className="upload-icons">
+                    <button type="button" className="icon-btn" aria-label={t('fromCloud')} title={t('fromCloud')}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+                        <path d="M12 16v-8M9 11l3-3 3 3" />
+                      </svg>
+                    </button>
+                    <button type="button" className="icon-btn" aria-label={t('otherSources')} title={t('otherSources')}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <rect x="14" y="14" width="7" height="7" rx="1" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <p className="upload-hint">{t('orDrop')}</p>
               </div>
-            </div>
-            <p className="upload-hint">{t('orDrop')}</p>
-          </div>
+            </section>
+
+            {showBelowFold && (
+              <Suspense fallback={null}>
+                <LandingBelowFold
+                  t={t}
+                  faqItems={faqItems}
+                  faqOpenIndex={faqOpenIndex}
+                  setFaqOpenIndex={setFaqOpenIndex}
+                />
+              </Suspense>
+            )}
+          </>
         )}
+
+        
+
 
         {/* Step 2: Settings + file list */}
         {isCompressPage && step === STEP_SETTINGS && (
@@ -610,11 +563,7 @@ function HomePage() {
             </a>
           </div>
         </section>
-
-        <CmsPagesSection />
       </main>
-
-      <Footer lang={lang} pathname={pathname} t={t} footerPages={footerPages} />
     </div>
   )
 }

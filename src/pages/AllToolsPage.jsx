@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
-import { supportedLangs, langOptions } from '../i18n/translations'
+import { SeoHead } from '../components/SeoHead'
 import './HomePage.css'
 import './AllToolsPage.css'
 
@@ -35,25 +35,10 @@ const TOOLS_LIST = [
 function AllToolsPage() {
   const { lang = 'en' } = useParams()
   const t = useTranslation(lang)
-  const pathname = `/${lang}/tools`
-  const [langDropdownOpen, setLangDropdownOpen] = useState(false)
-  const langDropdownRef = useRef(null)
 
   useEffect(() => {
     document.documentElement.lang = lang
   }, [lang])
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(e.target)) {
-        setLangDropdownOpen(false)
-      }
-    }
-    if (langDropdownOpen) {
-      document.addEventListener('click', handleClickOutside)
-      return () => document.removeEventListener('click', handleClickOutside)
-    }
-  }, [langDropdownOpen])
 
   const getToolHref = (tool) => {
     if (tool.available && tool.slug === '') return `/${lang}`
@@ -63,54 +48,7 @@ function AllToolsPage() {
 
   return (
     <div className="all-tools-page home-page">
-      <header className="header">
-        <div className="header-inner">
-          <a href={`/${lang}`} className="logo" aria-label={t('nav.home')}>
-            compressedPDF
-          </a>
-          <nav className="nav" aria-label="Main navigation">
-            <a href={`/${lang}/merge`}>{t('nav.merge')}</a>
-            <a href={`/${lang}/split`}>{t('nav.split')}</a>
-            <a href={`/${lang}`}>{t('nav.compress')}</a>
-            <a href={`/${lang}/convert`}>{t('nav.convert')}</a>
-            <a href={`/${lang}/tools`} className="nav-active">{t('nav.allTools')}</a>
-          </nav>
-          <div className="header-actions">
-            <div className="lang-dropdown" ref={langDropdownRef}>
-              <button
-                type="button"
-                className="lang-dropdown-trigger"
-                onClick={() => setLangDropdownOpen((o) => !o)}
-                aria-expanded={langDropdownOpen}
-                aria-haspopup="listbox"
-                aria-label="Select language"
-              >
-                <span className="lang-dropdown-flag">{langOptions[lang]?.flag ?? '🌐'}</span>
-                <span className="lang-dropdown-label">{langOptions[lang]?.label ?? lang.toUpperCase()}</span>
-                <span className="lang-dropdown-chevron" aria-hidden>▼</span>
-              </button>
-              {langDropdownOpen && (
-                <ul className="lang-dropdown-menu" role="listbox">
-                  {supportedLangs.map((l) => (
-                    <li key={l} role="option" aria-selected={lang === l}>
-                      <a
-                        href={pathname.replace(new RegExp(`^/${lang}(/|$)`), `/${l}$1`)}
-                        className={`lang-dropdown-item ${lang === l ? 'lang-dropdown-item--active' : ''}`}
-                        onClick={() => setLangDropdownOpen(false)}
-                      >
-                        <span className="lang-dropdown-item-flag">{langOptions[l]?.flag ?? '🌐'}</span>
-                        <span className="lang-dropdown-item-label">{langOptions[l]?.label ?? l.toUpperCase()}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <a href={`/${lang}/login`}>{t('nav.login')}</a>
-          </div>
-        </div>
-      </header>
-
+      <SeoHead title={t('tools.pageTitle')} description={t('tools.frequentlyUsed')} />
       <main className="all-tools-main">
         <h1 className="all-tools-title">{t('tools.pageTitle')}</h1>
         <p className="all-tools-subtitle">{t('tools.frequentlyUsed')}</p>
@@ -133,10 +71,6 @@ function AllToolsPage() {
           ))}
         </div>
       </main>
-
-      <footer className="footer">
-        <p>{t('footer')}</p>
-      </footer>
     </div>
   )
 }

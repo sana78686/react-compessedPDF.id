@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getPageBySlug } from '../api/cms'
 import { SeoHead } from '../components/SeoHead'
-import SiteLayout from '../components/SiteLayout'
 import { getPreferredLang, supportedLangs } from '../i18n/translations'
 import './CmsPage.css'
 
@@ -26,29 +25,24 @@ export default function CmsPage() {
 
   if (loading) {
     return (
-      <SiteLayout>
-        <div className="cms-page wrap">
-          <p className="cms-page-loading">Loading…</p>
-        </div>
-      </SiteLayout>
+      <div className="cms-page wrap">
+        <p className="cms-page-loading">Loading…</p>
+      </div>
     )
   }
 
   if (error || !data) {
     return (
-      <SiteLayout>
-        <div className="cms-page wrap">
-          <SeoHead title="Page not found" />
-          <p className="cms-page-error">{error || 'Page not found.'}</p>
-          <Link to={`/${langPrefix}`} className="cms-page-back">← Back to home</Link>
-        </div>
-      </SiteLayout>
+      <div className="cms-page wrap">
+        <SeoHead title="Page not found" />
+        <p className="cms-page-error">{error || 'Page not found.'}</p>
+        <Link to={`/${langPrefix}`} className="cms-page-back">← Back to home</Link>
+      </div>
     )
   }
 
   return (
-    <SiteLayout>
-      <article className="cms-page wrap">
+    <article className="cms-page wrap">
         <SeoHead
           title={data.meta_title || data.title}
           description={data.meta_description}
@@ -71,6 +65,5 @@ export default function CmsPage() {
           </Link>
         </footer>
       </article>
-    </SiteLayout>
   )
 }

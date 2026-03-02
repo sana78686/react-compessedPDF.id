@@ -13,6 +13,16 @@
 | GET | `/api/public/pages/{slug}` | Single page by slug (content + SEO) |
 | GET | `/api/public/blogs` | List published blogs |
 | GET | `/api/public/blogs/{slug}` | Single blog by slug (content + SEO) |
+| GET | `/api/public/contact` | Contact settings (email, phone, address) for display |
+| POST | `/api/public/contact/send` | Submit contact form; email is sent to the address set in **CMS Content Manager** |
+
+**Blog API response:** The frontend accepts `{ blogs: [...] }`, Laravel-style `{ data: [...] }`, `{ data: { data: [...] } }` (pagination), or a direct array. Each blog may include `og_image` or `image` (full URL) for the cover/featured image.
+
+**Contact form:** The email where contact form submissions are received is set in **CMS → Content Manager** (Contact email). The frontend POSTs to `/api/public/contact/send` with `name`, `email`, `subject`, `message`, and `accepts_terms`. Ensure Laravel mail is configured (e.g. `.env` `MAIL_*` and `MAIL_FROM_ADDRESS`).
+
+**Legal pages (Terms & Conditions, Privacy):** The contact form and footer link to `/:lang/page/terms` and `/:lang/page/privacy`. Create CMS **Pages** with slugs `terms` and `privacy` (e.g. "Terms & Conditions", "Privacy policy" or "Legal & Privacy") so those routes show the correct content.
+
+**CMS blog image & SEO:** The CMS blog Create/Edit forms include an **SEO / Meta tags** section with Meta title, Meta description, Canonical URL, Meta robots, OG title, OG description, and **OG image URL** (used as the article cover on the blog list and for social sharing). The public API returns these so the frontend can set full meta tags and `og:type=article` for each article.
 
 ## Run both
 
@@ -45,3 +55,10 @@
 - **Blog by slug:** `/:lang/blog/:slug` same for blog posts.
 
 CORS is allowed from `http://localhost:5000` and `http://localhost:5173` (see `compressedPDF-cms/config/cors.php`). For other origins, add them to `allowed_origins` in that file.
+
+## If the blog list shows "No blog posts yet"
+
+1. **Backend running?** Start the Laravel app from `compressedPDF-cms` (e.g. `npm run dev:all` or `php artisan serve` on port 8000).
+2. **API URL?** In the React app `.env`, set `VITE_API_URL=http://localhost:8000` and restart `npm run dev`.
+3. **Public endpoint:** The frontend calls `GET /api/public/blogs`. In the CMS, ensure this route returns only **published** blogs and that the response is either `{ blogs: [...] }` or `{ data: [...] }` (or a direct array). The frontend normalizes all of these.
+4. **Published flag:** In the CMS, the blog must be marked "Published" (checkbox on the blog form) so the public API includes it.

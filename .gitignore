@@ -13,6 +13,10 @@ dist
 dist-ssr
 *.local
 
+# Windows reserved device name (avoids "unable to index file nul" on git add)
+nul
+NUL
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

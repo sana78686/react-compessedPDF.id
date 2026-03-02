@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { supportedLangs, langOptions } from '../i18n/translations'
+import { ucWords } from '../utils/ucWords'
 import './Footer.css'
 
 export default function Footer({ lang, pathname, t, footerPages = [] }) {
@@ -26,37 +27,29 @@ export default function Footer({ lang, pathname, t, footerPages = [] }) {
             <div className="footer-col">
               <h3 className="footer-col-title">{t('footerProduct')}</h3>
               <a href={`/${langPrefix}`}>{t('footerHome')}</a>
-              <a href={`/${langPrefix}#features`}>{t('footerFeatures')}</a>
-              <a href={`/${langPrefix}#pricing`}>{t('footerPricing')}</a>
+              <a href={`/${langPrefix}/merge`}>{t('nav.merge')}</a>
+              <a href={`/${langPrefix}/split`}>{t('nav.split')}</a>
+              <a href={`/${langPrefix}`}>{t('nav.compress')}</a>
+              <a href={`/${langPrefix}/convert`}>{t('nav.convert')}</a>
               <a href={`/${langPrefix}/tools`}>{t('footerTools')}</a>
-              <a href={`/${langPrefix}#faq`}>{t('footerFaq')}</a>
+              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
             </div>
             <div className="footer-col">
               <h3 className="footer-col-title">{t('footerResources')}</h3>
-              <a href="#desktop">compressedPDF Desktop</a>
-              <a href="#mobile">compressedPDF Mobile</a>
-              <a href="#api">API</a>
-            </div>
-            <div className="footer-col">
-              <h3 className="footer-col-title">{t('footerSolutions')}</h3>
-              <a href="#business">{t('footerBusiness')}</a>
-              <a href="#education">{t('footerEducation')}</a>
-            </div>
-            <div className="footer-col">
-              <h3 className="footer-col-title">{t('footerLegal')}</h3>
-              <a href="#security">{t('footerSecurity')}</a>
-              <a href="#privacy">{t('footerPrivacy')}</a>
-              <a href="#terms">{t('footerTerms')}</a>
-              <a href="#cookies">{t('footerCookies')}</a>
+              <a href={`/${langPrefix}/tools`}>{t('footerTools')}</a>
+              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
             </div>
             <div className="footer-col">
               <h3 className="footer-col-title">{t('footerCompany')}</h3>
               {footerPages.map((p) => (
-                <a key={p.id} href={`/${langPrefix}/page/${p.slug}`}>{p.title}</a>
+                <a key={p.id} href={`/${langPrefix}/page/${p.slug}`}>{ucWords(p.title)}</a>
               ))}
-              <a href="#contact">{t('footerContact')}</a>
-              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
-              <a href="#press">{t('footerPress')}</a>
+              <a href={`/${langPrefix}/contact`}>{t('footerContact')}</a>
+            </div>
+            <div className="footer-col">
+              <h3 className="footer-col-title">{t('footerLegal')}</h3>
+              <a href={`/${langPrefix}/page/privacy`}>{t('footerPrivacy')}</a>
+              <a href={`/${langPrefix}/page/terms`}>{t('footerTerms')}</a>
             </div>
           </div>
         </div>

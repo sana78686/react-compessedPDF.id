@@ -1,10 +1,12 @@
 /* Use with .home-page for header/footer and Nuxt variables */
 .all-tools-main {
   flex: 1;
-  max-width: 960px;
+  max-width: var(--content-max-width, 1200px);
   margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+  padding: 2rem var(--content-padding-x, 1.5rem) 4rem;
+  width: 100%;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .all-tools-title {
@@ -95,4 +97,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (max-width: 640px) {
+  .all-tools-main {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .all-tools-title {
+    font-size: 1.5rem;
+  }
+
+  .tools-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .tool-card {
+    min-height: 100px;
+    padding: 1rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .all-tools-main {
+    padding: 1.25rem 0.75rem 2.5rem;
+  }
+
+  .all-tools-title {
+    font-size: 1.35rem;
+  }
+
+  .tools-grid {
+    grid-template-columns: 1fr;
+  }
 }

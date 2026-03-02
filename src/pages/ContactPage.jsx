@@ -1,0 +1,226 @@
+import { useEffect, useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from '../i18n/useTranslation'
+import { getContactSettings, submitContactForm } from '../api/cms'
+import { SeoHead } from '../components/SeoHead'
+import { getPreferredLang, supportedLangs } from '../i18n/translations'
+import './ContactPage.css'
+
+export default function ContactPage() {
+  const { lang } = useParams()
+  const t = useTranslation(lang)
+  const langPrefix = supportedLangs.includes(lang) ? lang : getPreferredLang()
+  const [settings, setSettings] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: '',
+    accepts_terms: false,
+  })
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
+
+  useEffect(() => {
+    getContactSettings()
+      .then(setSettings)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const subjectOptions = [
+    { value: '', label: t('contact.chooseSubject') },
+    { value: 'general', label: t('contact.subjectGeneral') },
+    { value: 'support', label: t('contact.subjectSupport') },
+    { value: 'feedback', label: t('contact.subjectFeedback') },
+    { value: 'other', label: t('contact.subjectOther') },
+  ]
+
+  function handleChange(e) {
+    const { name, value, type, checked } = e.target
+    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
+    setFormError('')
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    if (!form.accepts_terms) {
+      setFormError(t('contact.errorTerms'))
+      return
+    }
+    setFormError('')
+    setSubmitting(true)
+    try {
+      await submitContactForm({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        subject: form.subject || t('contact.subjectGeneral'),
+        message: form.message.trim(),
+        accepts_terms: true,
+      })
+      setSubmitSuccess(true)
+      setForm({ name: '', email: '', subject: '', message: '', accepts_terms: false })
+    } catch (err) {
+      const msg = err.message || t('contact.errorSend')
+      setFormError(msg)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="contact-page wrap">
+        <p className="contact-page-loading">Loading…</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="contact-page wrap">
+        <SeoHead title={t('contact.title')} />
+        <p className="contact-page-error">{error}</p>
+        <Link to={`/${langPrefix}`} className="contact-page-back">← {t('contact.backHome')}</Link>
+      </div>
+    )
+  }
+
+  return (
+    <article className="contact-page wrap">
+      <SeoHead title={t('contact.title')} description={t('contact.description')} />
+      <div className="contact-page-grid">
+        <div className="contact-page-intro">
+          <h1 className="contact-page-title">{t('contact.title')}</h1>
+          <p className="contact-page-intro-text">{t('contact.intro')}</p>
+        </div>
+        <div className="contact-page-form-wrap">
+          {submitSuccess ? (
+            <div className="contact-form-success" role="status">
+              <p className="contact-form-success-text">{t('contact.successMessage')}</p>
+              <button
+                type="button"
+                className="contact-form-success-again"
+                onClick={() => setSubmitSuccess(false)}
+              >
+                Send another message
+              </button>
+            </div>
+          ) : (
+            <form className="contact-form" onSubmit={handleSubmit} noValidate>
+              <div className="contact-form-row">
+                <label className="contact-form-label" htmlFor="contact-name">
+                  {t('contact.yourName')} <span className="contact-form-required">*</span>
+                </label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  className="contact-form-input"
+                  placeholder={t('contact.yourName')}
+                  required
+                  autoComplete="name"
+                />
+              </div>
+              <div className="contact-form-row">
+                <label className="contact-form-label" htmlFor="contact-email">
+                  {t('contact.yourEmail')} <span className="contact-form-required">*</span>
+                </label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="contact-form-input"
+                  placeholder={t('contact.yourEmail')}
+                  required
+                  autoComplete="email"
+                />
+              </div>
+              <div className="contact-form-row">
+                <label className="contact-form-label" htmlFor="contact-subject">
+                  {t('contact.subject')} <span className="contact-form-required">*</span>
+                </label>
+                <select
+                  id="contact-subject"
+                  name="subject"
+                  value={form.subject}
+                  onChange={handleChange}
+                  className="contact-form-select"
+                  required
+                >
+                  {subjectOptions.map((opt) => (
+                    <option key={opt.value || 'empty'} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="contact-form-row">
+                <label className="contact-form-label" htmlFor="contact-message">
+                  {t('contact.message')} <span className="contact-form-required">*</span>
+                </label>
+                <textarea
+                  id="contact-message"
+                  name="message"
+                  value={form.message}
+                  onChange={handleChange}
+                  className="contact-form-textarea"
+                  placeholder={t('contact.writeMessage')}
+                  required
+                  rows={5}
+                />
+              </div>
+              <div className="contact-form-row contact-form-consent">
+                <label className="contact-form-checkbox-label">
+                  <input
+                    type="checkbox"
+                    name="accepts_terms"
+                    checked={form.accepts_terms}
+                    onChange={handleChange}
+                    className="contact-form-checkbox"
+                  />
+                  <span>
+                    {t('contact.iAccept')}{' '}
+                    <Link to={`/${langPrefix}/page/terms`} className="contact-form-legal-link">
+                      {t('contact.termsAndConditions')}
+                    </Link>
+                    {' and '}
+                    <Link to={`/${langPrefix}/page/privacy`} className="contact-form-legal-link">
+                      {t('contact.legalPrivacy')}
+                    </Link>
+                  </span>
+                </label>
+              </div>
+              {formError && (
+                <p className="contact-form-error" role="alert">
+                  {formError}
+                </p>
+              )}
+              <button
+                type="submit"
+                className="contact-form-submit"
+                disabled={submitting}
+              >
+                {submitting ? 'Sending…' : t('contact.sendMessage')}
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+      <footer className="contact-page-footer">
+        <Link to={`/${langPrefix}`} className="contact-page-back">← {t('contact.backHome')}</Link>
+      </footer>
+    </article>
+  )
+}
