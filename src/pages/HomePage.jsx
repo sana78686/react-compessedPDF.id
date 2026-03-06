@@ -7,6 +7,23 @@ import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 const LandingBelowFold = lazy(() => import('./LandingBelowFold'))
 
+// Workaround for servers that serve .mjs as application/octet-stream: fetch worker as text
+// and create a blob URL so the worker runs with correct MIME (works on live without Nginx fix).
+let cachedWorkerBlobUrl = null
+async function getPdfWorkerSrc() {
+  if (cachedWorkerBlobUrl) return cachedWorkerBlobUrl
+  try {
+    const url = pdfWorkerUrl.startsWith('http') ? pdfWorkerUrl : `${window.location.origin}${pdfWorkerUrl}`
+    const res = await fetch(url)
+    const text = await res.text()
+    const blob = new Blob([text], { type: 'application/javascript' })
+    cachedWorkerBlobUrl = URL.createObjectURL(blob)
+    return cachedWorkerBlobUrl
+  } catch {
+    return pdfWorkerUrl
+  }
+}
+
 const STEP_UPLOAD = 1
 const STEP_SETTINGS = 2
 const STEP_RESULT = 3
@@ -128,7 +145,7 @@ function HomePage() {
       import('jspdf'),
     ])
     if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+      pdfjsLib.GlobalWorkerOptions.workerSrc = await getPdfWorkerSrc()
     }
     const blob = new Blob([arrayBuffer], { type: 'application/pdf' })
     const url = URL.createObjectURL(blob)
@@ -195,7 +212,7 @@ function HomePage() {
         import('jspdf'),
       ])
       if (pdfjsLib.GlobalWorkerOptions && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+        pdfjsLib.GlobalWorkerOptions.workerSrc = await getPdfWorkerSrc()
       }
 
       blobUrl = URL.createObjectURL(file)
