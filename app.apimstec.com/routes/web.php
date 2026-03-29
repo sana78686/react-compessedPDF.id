@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/domains/{domain}', [DomainController::class, 'destroy'])->name('domains.destroy');
     Route::post('/domains/switch', [DomainController::class, 'switchDomain'])->name('domains.switch');
     Route::post('/domains/{domain}/sync-schema', [DomainController::class, 'syncSchema'])->name('domains.sync-schema');
+    Route::post('/domains/{domain}/migrate-fresh', [DomainController::class, 'migrateFresh'])->name('domains.migrate-fresh');
 });
 
 Route::middleware(['auth', 'verified'])->prefix('credentials')->name('credentials.')->group(function () {

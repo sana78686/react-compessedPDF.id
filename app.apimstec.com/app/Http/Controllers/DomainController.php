@@ -167,8 +167,8 @@ class DomainController extends Controller
     }
 
     /**
-     * Run migrations on the selected domain's database so it gets
-     * the same schema as the master DB (one-click setup for new domains).
+     * Run pending migrations on the domain's database — safe, no data loss.
+     * Adds any new tables/columns that don't exist yet.
      */
     public function syncSchema(Domain $domain): RedirectResponse
     {
@@ -180,13 +180,36 @@ class DomainController extends Controller
             Artisan::call('migrate', [
                 '--database' => 'tenant',
                 '--force'    => true,
-                '--path'     => 'database/migrations/tenant',
             ]);
 
             $output = Artisan::output();
-            return back()->with('success', "Schema synced for {$domain->domain}. " . trim($output));
+            return back()->with('success', "Schema synced for \"{$domain->name}\". " . trim($output));
         } catch (\Throwable $e) {
             return back()->with('error', 'Schema sync failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Drop all tables in the domain's database, re-run all migrations,
+     * then run the database seeders. USE WITH CAUTION — destroys all data.
+     */
+    public function migrateFresh(Domain $domain): RedirectResponse
+    {
+        try {
+            config(['database.connections.tenant' => $domain->connectionConfig()]);
+            DB::purge('tenant');
+            DB::reconnect('tenant');
+
+            Artisan::call('migrate:fresh', [
+                '--database' => 'tenant',
+                '--force'    => true,
+                '--seed'     => true,
+            ]);
+
+            $output = Artisan::output();
+            return back()->with('success', "Fresh migrate + seed complete for \"{$domain->name}\". " . trim($output));
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Fresh migration failed: ' . $e->getMessage());
         }
     }
 }
