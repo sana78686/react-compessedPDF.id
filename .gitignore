@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 compressedPDF-cms
+app.apimstec.com
 dist
 dist-ssr
 *.local
