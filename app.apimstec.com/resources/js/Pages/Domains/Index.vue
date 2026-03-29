@@ -11,6 +11,24 @@ const props = defineProps({
 
 const switching   = ref(null);
 const schemaMenu  = ref(null); // domain id whose schema dropdown is open
+const testResults = ref({});   // { [domainId]: { testing, success, message } }
+
+async function testSavedConnection(domain) {
+  testResults.value[domain.id] = { testing: true };
+  try {
+    const res = await fetch(route('domains.test-saved-connection', domain.id), {
+      method: 'POST',
+      headers: {
+        'Accept':       'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+      },
+    });
+    const data = await res.json();
+    testResults.value[domain.id] = { testing: false, ...data };
+  } catch (e) {
+    testResults.value[domain.id] = { testing: false, success: false, message: e.message };
+  }
+}
 
 function switchDomain(id) {
   switching.value = id ?? 'master';
@@ -160,6 +178,17 @@ function onClickOutside(e) {
 
                 <!-- Actions -->
                 <td>
+                  <!-- DB test result badge (shows below actions) -->
+                  <div v-if="testResults[d.id] && !testResults[d.id].testing" class="mb-1">
+                    <span
+                      class="badge"
+                      :class="testResults[d.id].success ? 'bg-success' : 'bg-danger'"
+                      style="font-size:.7rem;white-space:normal;max-width:280px;text-align:left;"
+                    >
+                      {{ testResults[d.id].success ? '✓ ' : '✗ ' }}{{ testResults[d.id].message }}
+                    </span>
+                  </div>
+
                   <div class="d-flex align-items-center gap-1 flex-wrap">
 
                     <!-- Switch -->
@@ -172,6 +201,16 @@ function onClickOutside(e) {
                       @click="switchDomain(d.id)"
                     >
                       {{ d.id === activeDomainId ? 'Active' : (switching === d.id ? 'Switching…' : 'Switch') }}
+                    </button>
+
+                    <!-- Test DB connection -->
+                    <button
+                      class="admin-list-link ms-1"
+                      :disabled="testResults[d.id]?.testing"
+                      title="Ping the database with saved credentials to verify they are correct"
+                      @click="testSavedConnection(d)"
+                    >
+                      {{ testResults[d.id]?.testing ? 'Testing…' : 'Test DB' }}
                     </button>
 
                     <!-- Edit -->
@@ -267,6 +306,7 @@ function onClickOutside(e) {
         <strong>Button guide:</strong>
         <ul class="mb-0 mt-1" style="padding-left:1.2rem;line-height:1.8;">
           <li><strong>Switch</strong> — sets this domain as active; all CMS edits go to its database</li>
+          <li><strong>Test DB</strong> — pings the database with saved credentials; shows ✓ green or ✗ red with the error</li>
           <li><strong>Edit</strong> — update the domain name, URL or database credentials</li>
           <li><strong>Schema → Sync schema</strong> — runs pending migrations (safe, no data deleted)</li>
           <li><strong>Schema → Fresh + Seed</strong> — <span style="color:#c00;">DESTRUCTIVE</span>: drops all tables, recreates and seeds (use only on empty/new databases)</li>
