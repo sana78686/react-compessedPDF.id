@@ -505,7 +505,9 @@
   top: 100%;
   right: 0;
   margin-top: 0.25rem;
-  min-width: 180px;
+  min-width: 240px;
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
   background: var(--admin-card-bg);
   border: 1px solid var(--admin-card-border);
   border-radius: var(--admin-radius-lg);
@@ -534,7 +536,34 @@
   background: var(--admin-main-bg);
 }
 
-.admin-user-dropdown button {
+.admin-user-dropdown button.admin-user-dropdown-action {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--admin-text);
+}
+
+.admin-user-dropdown button:not(.admin-user-dropdown-action) {
+  color: #b91c1c;
+}
+
+.admin-user-dropdown-divider {
+  margin: 0.35rem 0;
+  border: none;
+  border-top: 1px solid var(--admin-card-border);
+}
+
+.admin-user-dropdown-label {
+  padding: 0.35rem 1rem 0.2rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 0;
+}
+
+.admin-user-dropdown button.admin-user-dropdown-danger {
   color: #b91c1c;
 }
 
@@ -553,6 +582,11 @@
 .admin-flash-success {
   background: #dcfce7;
   color: #166534;
+}
+
+.admin-flash-error {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* -------------------------------------------------------------------------
@@ -936,6 +970,36 @@
   color: #b91c1c;
 }
 
+/* ── Status dropdown (replaces old publish toggle) ── */
+.admin-status-select {
+  appearance: auto;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: .2rem .5rem;
+  border-radius: 6px;
+  border: 1px solid var(--admin-card-border, #eaeaef);
+  background: var(--admin-main-bg, #f6f6f9);
+  color: var(--admin-text, #32324d);
+  cursor: pointer;
+  max-width: 120px;
+}
+.admin-status-select--visible {
+  background: #e8f9ee;
+  border-color: #27ae60;
+  color: #1a7a42;
+}
+.admin-status-select--draft {
+  background: #f4f4fb;
+  border-color: #c5c3ff;
+  color: #4945ff;
+}
+.admin-status-select--disabled {
+  background: #fff5e5;
+  border-color: #e67e22;
+  color: #a04000;
+}
+
+/* keep old class in case any template still uses it */
 .admin-publish-toggle {
   font-weight: 500;
   padding: 0.2rem 0.5rem;
@@ -944,18 +1008,9 @@
   background: var(--admin-main-bg, #f6f6f9);
   color: var(--admin-text-muted, #666687);
 }
-.admin-publish-toggle:hover {
-  background: #eaeaef;
-  color: var(--admin-text, #32324d);
-}
 .admin-publish-toggle.is-published {
   background: var(--admin-primary, #181826);
   border-color: var(--admin-primary, #181826);
-  color: #fff;
-}
-.admin-publish-toggle.is-published:hover {
-  background: var(--admin-primary-hover, #0d0d14);
-  border-color: var(--admin-primary-hover, #0d0d14);
   color: #fff;
 }
 

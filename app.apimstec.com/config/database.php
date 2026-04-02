@@ -13,6 +13,7 @@ return [
     | to use as your default connection for database operations. This is
     | the connection which will be utilized unless another connection
     | is explicitly specified when you execute a query / statement.
+    | Runtime: TenantMiddleware may set default to `tenant` when a site is active.
     |
     */
 
@@ -64,17 +65,18 @@ return [
         ],
 
         /*
-         * Tenant connection — dynamically overridden per-request by TenantMiddleware
-         * based on the active domain (admin session or X-Domain API header).
-         * Defaults to the master DB so the CMS works without domain selection.
+         * Tenant = each website’s content DB only. TenantMiddleware overwrites this from the active Domain.
+         *
+         * Optional: CMS_TENANT_* in .env when switching domain (Artisan / single-server). Never point DB_*
+         * at a site database — `mysql` is the CMS registry (users, domains, roles, sessions).
          */
         'tenant' => [
             'driver'    => 'mysql',
-            'host'      => env('DB_HOST', '127.0.0.1'),
-            'port'      => env('DB_PORT', '3306'),
-            'database'  => env('DB_DATABASE', 'laravel'),
-            'username'  => env('DB_USERNAME', 'root'),
-            'password'  => env('DB_PASSWORD', ''),
+            'host'      => env('CMS_TENANT_HOST', env('DB_HOST', '127.0.0.1')),
+            'port'      => env('CMS_TENANT_PORT', env('DB_PORT', '3306')),
+            'database'  => env('CMS_TENANT_DATABASE', env('DB_DATABASE', 'laravel')),
+            'username'  => env('CMS_TENANT_USERNAME', env('DB_USERNAME', 'root')),
+            'password'  => env('CMS_TENANT_PASSWORD', env('DB_PASSWORD', '')),
             'charset'   => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix'    => '',

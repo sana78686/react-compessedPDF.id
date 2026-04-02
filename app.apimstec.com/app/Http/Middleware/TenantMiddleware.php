@@ -9,12 +9,19 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Switches the `tenant` database connection on every request.
+ * Switches the `tenant` database connection on each request.
  *
- * Priority order:
- *  1. Admin session  → session('active_domain_id')
- *  2. Public API     → X-Domain request header (e.g. "compresspdf.id")
- *  3. Fallback       → tenant connection stays pointing at master DB
+ * Registered on the `web` stack (after StartSession) so session('active_domain_id') is
+ * available for the CMS. Registered on `api` for X-Domain on public frontend routes.
+ *
+ * Priority:
+ *  1. Admin session → session('active_domain_id')
+ *  2. Public API    → X-Domain header (e.g. compresspdf.id)
+ *  3. Fallback      → env CMS_TENANT_* or DB_* (only before a domain is resolved)
+ *
+ * When a domain is resolved, `database.default` is set to `tenant` so CMS code never
+ * accidentally hits the registry DB. User, Role, Permission, Domain models keep
+ * `protected $connection = 'mysql'`. Sessions use connection `mysql` (see config/session.php).
  */
 class TenantMiddleware
 {
@@ -43,13 +50,35 @@ class TenantMiddleware
             // 2. X-Domain header (public API routes from React frontends)
             $header = $request->header('X-Domain');
             if ($header) {
-                return Domain::where('domain', $header)->where('is_active', true)->first();
+                return $this->resolveDomainFromHostHeader($header);
             }
         } catch (\Throwable $e) {
             // Domains table may not exist yet (migration pending) — fail gracefully
         }
 
         return null;
+    }
+
+    /**
+     * Match `domains.domain` even if React sends www. prefix or different casing.
+     */
+    private function resolveDomainFromHostHeader(string $header): ?Domain
+    {
+        $raw = strtolower(trim($header));
+        if ($raw === '') {
+            return null;
+        }
+
+        $host = preg_replace('#:\d+$#', '', $raw) ?? $raw;
+        $candidates = array_unique(array_filter([
+            $host,
+            str_starts_with($host, 'www.') ? substr($host, 4) : 'www.'.$host,
+        ]));
+
+        return Domain::query()
+            ->where('is_active', true)
+            ->whereIn('domain', $candidates)
+            ->first();
     }
 
     private function switchTenantConnection(Domain $domain): void
@@ -60,5 +89,8 @@ class TenantMiddleware
         // Purge any cached PDO instance and reconnect with new credentials
         DB::purge('tenant');
         DB::reconnect('tenant');
+
+        // CMS content must use the site DB; only explicit `mysql` models touch the registry.
+        config(['database.default' => 'tenant']);
     }
 }

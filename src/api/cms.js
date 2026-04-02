@@ -1,20 +1,12 @@
-const FALLBACK_API_BASE = import.meta.env.PROD
-  ? 'https://app.apimstec.com'
-  : 'http://localhost:8000'
-
-const API_BASE = (import.meta.env.VITE_API_URL || FALLBACK_API_BASE).replace(/\/$/, '')
-
-// The domain this frontend belongs to — sent as X-Domain header so the
-// central CMS (app.apimstec.com) serves data from the correct database.
-const SITE_DOMAIN = import.meta.env.VITE_SITE_DOMAIN || 'compresspdf.id'
+import { CMS_API_BASE, CMS_SITE_DOMAIN } from '../config/cms.js'
 
 async function request(path, options = {}) {
-  const url = `${API_BASE}/api/public${path}`
+  const url = `${CMS_API_BASE}/api/public${path}`
   const res = await fetch(url, {
     ...options,
     headers: {
       Accept: 'application/json',
-      'X-Domain': SITE_DOMAIN,
+      'X-Domain': CMS_SITE_DOMAIN,
       ...options.headers,
     },
   })

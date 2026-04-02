@@ -29,7 +29,7 @@ Route::prefix('public')->name('api.public.')->group(function () {
     Route::get('legal/{slug}', [PublicApiController::class, 'legalPage'])->name('legal')->where('slug', 'terms|privacy-policy|disclaimer|about-us|cookie-policy');
 });
 
-Route::middleware(['web', 'auth', 'verified'])->group(function () {
+Route::middleware(['web', 'auth', 'verified', 'active.domain'])->group(function () {
     Route::middleware('permission:users.view')->prefix('users')->name('api.users.')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('index');
         Route::get('/create', [UserController::class, 'create'])->name('create')->middleware('permission:users.create');
@@ -59,6 +59,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::put('/{page}', [PageController::class, 'update'])->name('update');
         Route::put('/{page}/seo', [PageController::class, 'updateSeo'])->name('update-seo');
         Route::delete('/{page}', [PageController::class, 'destroy'])->name('destroy');
+        Route::patch('/{page}/status', [PageController::class, 'updateStatus'])->name('update-status');
         Route::post('/{page}/toggle-publish', [PageController::class, 'togglePublish'])->name('toggle-publish');
     });
 
@@ -69,6 +70,7 @@ Route::middleware(['web', 'auth', 'verified'])->group(function () {
         Route::get('/{blog}/edit', [BlogController::class, 'edit'])->name('edit');
         Route::put('/{blog}', [BlogController::class, 'update'])->name('update');
         Route::delete('/{blog}', [BlogController::class, 'destroy'])->name('destroy');
+        Route::patch('/{blog}/status', [BlogController::class, 'updateStatus'])->name('update-status');
         Route::post('/{blog}/toggle-publish', [BlogController::class, 'togglePublish'])->name('toggle-publish');
         Route::patch('/{blog}/visibility', [BlogController::class, 'updateVisibility'])->name('update-visibility');
     });

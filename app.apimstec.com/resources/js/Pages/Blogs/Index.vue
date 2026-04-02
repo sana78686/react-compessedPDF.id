@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const page = usePage();
 const blogs = ref([]);
@@ -19,6 +20,14 @@ const filteredBlogs = computed(() => {
       (b.excerpt || '').toLowerCase().includes(q)
   );
 });
+
+const perPage     = 20;
+const currentPage = ref(1);
+const pagedBlogs  = computed(() => {
+  const start = (currentPage.value - 1) * perPage;
+  return filteredBlogs.value.slice(start, start + perPage);
+});
+watch(searchQuery, () => { currentPage.value = 1; });
 
 onMounted(async () => {
   const params = new URLSearchParams(window.location.search);
@@ -46,38 +55,24 @@ async function destroy(b) {
   }
 }
 
-async function togglePublish(b) {
-  try {
-    const { data } = await window.axios.post(`/api/blogs/${b.id}/toggle-publish`);
-    const idx = blogs.value.findIndex((x) => x.id === b.id);
-    if (idx !== -1) {
-      blogs.value[idx].is_published = data.is_published;
-      if (data.visibility != null) blogs.value[idx].visibility = data.visibility;
-    }
-    successMessage.value = data.message || (data.is_published ? 'Blog published.' : 'Blog unpublished.');
-  } catch (e) {
-    const msg = e.response?.data?.message || 'Failed to update.';
-    alert(msg);
-  }
-}
-
-const visibilityOptions = [
-  { value: 'published', label: 'Published' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'private', label: 'Private' },
+const STATUS_OPTIONS = [
+  { value: 'draft',    label: 'Draft'    },
+  { value: 'visible',  label: 'Visible'  },
+  { value: 'disabled', label: 'Disabled' },
 ];
 
-async function changeVisibility(b, newVisibility) {
+async function changeStatus(b, newVisibility) {
+  if (b.visibility === newVisibility) return;
   const prev = b.visibility;
   b.visibility = newVisibility;
   try {
-    const { data } = await window.axios.patch(`/api/blogs/${b.id}/visibility`, { visibility: newVisibility });
-    b.visibility = data.visibility;
+    const { data } = await window.axios.patch(`/api/blogs/${b.id}/status`, { visibility: newVisibility });
+    b.visibility   = data.visibility;
     b.is_published = data.is_published;
-    successMessage.value = data.message || 'Visibility updated.';
+    successMessage.value = data.message || 'Status updated.';
   } catch (e) {
     b.visibility = prev;
-    const msg = e.response?.data?.message || 'Failed to update visibility.';
+    const msg = e.response?.data?.message || 'Failed to update status.';
     alert(msg);
   }
 }
@@ -132,38 +127,26 @@ async function changeVisibility(b, newVisibility) {
               <th>Title</th>
               <th>Slug</th>
               <th>Author</th>
-              <th>Published</th>
+              <th>Published at</th>
               <th>Status</th>
-              <th>Visibility</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="b in filteredBlogs" :key="b.id">
+            <tr v-for="b in pagedBlogs" :key="b.id">
               <td>{{ b.title }}</td>
               <td><code class="admin-list-code">{{ b.slug }}</code></td>
               <td>{{ b.author?.name ?? '—' }}</td>
               <td>{{ b.published_at ? new Date(b.published_at).toLocaleDateString() : '—' }}</td>
               <td>
-                <button
-                  type="button"
-                  class="admin-list-link admin-publish-toggle"
-                  :class="{ 'is-published': b.is_published }"
-                  :title="b.is_published ? 'Click to unpublish' : 'Click to publish'"
-                  @click="togglePublish(b)"
-                >
-                  {{ b.is_published ? 'Published' : 'Unpublished' }}
-                </button>
-              </td>
-              <td>
                 <select
                   :value="b.visibility || 'draft'"
-                  class="form-select form-select-sm"
-                  style="max-width: 7rem;"
-                  aria-label="Visibility"
-                  @change="changeVisibility(b, $event.target.value)"
+                  class="admin-status-select"
+                  :class="`admin-status-select--${b.visibility || 'draft'}`"
+                  :title="`Status: ${b.visibility || 'draft'}`"
+                  @change="changeStatus(b, $event.target.value)"
                 >
-                  <option v-for="opt in visibilityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  <option v-for="s in STATUS_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</option>
                 </select>
               </td>
               <td>
@@ -179,6 +162,13 @@ async function changeVisibility(b, newVisibility) {
             </tr>
           </tbody>
         </table>
+        <Pagination
+          v-if="!loading"
+          :total="filteredBlogs.length"
+          :per-page="perPage"
+          :current-page="currentPage"
+          @update:current-page="currentPage = $event"
+        />
         <p v-if="!loading && !filteredBlogs.length" class="admin-text-muted" style="padding: 1.5rem;">No blog posts yet. Add one to get started.</p>
       </div>
     </div>

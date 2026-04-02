@@ -1,8 +1,0 @@
-Wrap domain queries in try/catch — survive missing domains table
-
-TenantMiddleware, HandleInertiaRequests and the 404 exception handler
-all query the domains table. If the migration has not run on the live
-server the app crashes on every request. Try/catch lets the app boot
-normally so the admin can log in and run artisan migrate.
-
-Made-with: Cursor

@@ -1,5 +1,14 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+
+function normalizeSiteDomain(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/:\d+$/, '')
+    .split('/')[0]
+}
 
 /** Inject modulepreload for entry script so browser starts loading it earlier (LCP) */
 function modulepreloadPlugin() {
@@ -24,7 +33,7 @@ function modulepreloadPlugin() {
  * Works in both dev (cached after first fetch) and build modes.
  * React's SeoHead still overrides these at runtime for regular users.
  */
-function cmsSeoInjectPlugin() {
+function cmsSeoInjectPlugin(viteEnv) {
   // Cache only during a build run (single pass). In dev mode we always fetch
   // fresh data so changes saved in the CMS are visible on the next page reload
   // without restarting the dev server.
@@ -48,10 +57,16 @@ function cmsSeoInjectPlugin() {
 
           if (!data) {
             const apiBase = (
-              process.env.VITE_API_URL ||
-              (isDevServer ? 'http://localhost:8000' : 'https://portal.compresspdf.id')
+              viteEnv.VITE_API_URL ||
+              (isDevServer ? 'http://localhost:8000' : 'https://app.apimstec.com')
             ).replace(/\/$/, '')
-            const res = await fetch(`${apiBase}/api/public/home-content`)
+            const siteDomain = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
+            const res = await fetch(`${apiBase}/api/public/home-content`, {
+              headers: {
+                Accept: 'application/json',
+                'X-Domain': siteDomain,
+              },
+            })
             if (!res.ok) throw new Error(`HTTP ${res.status}`)
             data = await res.json()
             if (!isDevServer) buildCache = data  // cache only for build pass
@@ -108,21 +123,24 @@ function cmsSeoInjectPlugin() {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), cmsSeoInjectPlugin(), modulepreloadPlugin()],
-  server: {
-    port: 5000,
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor'
-            return 'vendor-misc'
-          }
+export default defineConfig(({ mode }) => {
+  const viteEnv = loadEnv(mode, process.cwd(), '')
+  return {
+    plugins: [react(), cmsSeoInjectPlugin(viteEnv), modulepreloadPlugin()],
+    server: {
+      port: 5000,
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) return 'vendor'
+              return 'vendor-misc'
+            }
+          },
         },
       },
     },
-  },
+  }
 })

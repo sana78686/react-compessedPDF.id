@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Domain;
+use App\Support\TenantArtisanDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +28,7 @@ class DomainController extends Controller
             'db_password' => 'required|string',
         ]);
 
-        return $this->tryConnect(
+        return $this->connectionTestJsonResponse(
             $data['db_host'], $data['db_port'],
             $data['db_name'], $data['db_username'], $data['db_password']
         );
@@ -38,14 +40,17 @@ class DomainController extends Controller
     public function testSavedConnection(Domain $domain): \Illuminate\Http\JsonResponse
     {
         $cfg = $domain->connectionConfig();
-        return $this->tryConnect(
+
+        return $this->connectionTestJsonResponse(
             $cfg['host'], $cfg['port'],
             $cfg['database'], $cfg['username'], $cfg['password']
         );
     }
 
-    /** Attempt a raw PDO connection and return a JSON result. */
-    private function tryConnect(string $host, int $port, string $db, string $user, string $pass): \Illuminate\Http\JsonResponse
+    /**
+     * @return array{0: bool, 1: string} Whether the connection succeeded, and a status or error message.
+     */
+    private function verifyDatabaseConnection(string $host, int $port, string $db, string $user, string $pass): array
     {
         try {
             $dsn = "mysql:host={$host};port={$port};dbname={$db};charset=utf8mb4";
@@ -53,9 +58,29 @@ class DomainController extends Controller
                 \PDO::ATTR_TIMEOUT => 5,
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
             ]);
-            return response()->json(['success' => true,  'message' => 'Connection successful — credentials are correct!']);
+
+            return [true, 'Connection successful — credentials are correct!'];
         } catch (\PDOException $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+            return [false, $e->getMessage()];
+        }
+    }
+
+    private function connectionTestJsonResponse(string $host, int $port, string $db, string $user, string $pass): \Illuminate\Http\JsonResponse
+    {
+        [$ok, $message] = $this->verifyDatabaseConnection($host, $port, $db, $user, $pass);
+
+        return response()->json(['success' => $ok, 'message' => $message]);
+    }
+
+    /** @throws ValidationException */
+    private function assertDatabaseCredentialsWork(string $host, int $port, string $db, string $user, string $pass): void
+    {
+        [$ok, $message] = $this->verifyDatabaseConnection($host, $port, $db, $user, $pass);
+
+        if (! $ok) {
+            throw ValidationException::withMessages([
+                'db_connection' => ['Could not connect to the database. '.$message],
+            ]);
         }
     }
 
@@ -77,14 +102,16 @@ class DomainController extends Controller
     {
         $domains = Domain::orderByDesc('is_default')->orderBy('name')->get()
             ->map(fn (Domain $d) => [
-                'id'           => $d->id,
-                'name'         => $d->name,
-                'domain'       => $d->domain,
-                'frontend_url' => $d->frontend_url,
-                'db_host'      => $d->db_host,
-                'db_name'      => $d->db_name,
-                'is_active'    => $d->is_active,
-                'is_default'   => $d->is_default,
+                'id'             => $d->id,
+                'name'           => $d->name,
+                'domain'         => $d->domain,
+                'frontend_url'   => $d->frontend_url,
+                'db_host'        => $d->db_host,
+                'db_name'        => $d->db_name,
+                'is_active'      => $d->is_active,
+                'is_default'     => $d->is_default,
+                /** Schema buttons only for a separate site DB — never the CMS master */
+                'can_run_schema' => ! $d->targetsMasterDatabase(),
             ]);
 
         return Inertia::render('Domains/Index', [
@@ -113,6 +140,14 @@ class DomainController extends Controller
             'is_default'   => 'boolean',
         ]);
 
+        $this->assertDatabaseCredentialsWork(
+            $data['db_host'],
+            (int) $data['db_port'],
+            $data['db_name'],
+            $data['db_username'],
+            $data['db_password'],
+        );
+
         if (!empty($data['is_default'])) {
             Domain::where('is_default', true)->update(['is_default' => false]);
         }
@@ -123,6 +158,8 @@ class DomainController extends Controller
         // auto_select=true: immediately activate this domain and go to dashboard
         if ($request->boolean('auto_select')) {
             session(['active_domain_id' => $domain->id]);
+            $this->syncTenantEnvFile($domain);
+
             return redirect()->route('dashboard')->with('success', "Now managing: {$domain->name}");
         }
 
@@ -166,6 +203,19 @@ class DomainController extends Controller
             Domain::where('is_default', true)->where('id', '!=', $domain->id)->update(['is_default' => false]);
         }
 
+        $plainPassword = $data['db_password'] ?? '';
+        if ($plainPassword === '') {
+            $plainPassword = $domain->decryptedPassword();
+        }
+
+        $this->assertDatabaseCredentialsWork(
+            $data['db_host'],
+            (int) $data['db_port'],
+            $data['db_name'],
+            $data['db_username'],
+            $plainPassword,
+        );
+
         // Only update password if a new one was entered
         if (empty($data['db_password'])) {
             unset($data['db_password']);
@@ -174,6 +224,10 @@ class DomainController extends Controller
         }
 
         $domain->update($data);
+
+        if ((int) session('active_domain_id') === (int) $domain->id) {
+            $this->syncTenantEnvFile($domain->fresh());
+        }
 
         return redirect()->route('domains.index')->with('success', "Domain \"{$domain->name}\" updated.");
     }
@@ -186,8 +240,9 @@ class DomainController extends Controller
         $name = $domain->name;
         $domain->delete();
 
-        if (session('active_domain_id') === $domain->id) {
+        if ((int) session('active_domain_id') === (int) $domain->id) {
             session()->forget('active_domain_id');
+            $this->syncTenantEnvFile(null);
         }
 
         return redirect()->route('domains.index')->with('success', "Domain \"{$name}\" removed.");
@@ -199,18 +254,31 @@ class DomainController extends Controller
         $id       = $request->input('domain_id');
         $redirect = $request->input('redirect', 'back'); // 'dashboard' | 'back'
 
-        if (!$id) {
-            session()->forget('active_domain_id');
-            $msg = 'Switched to master database.';
-        } else {
-            $domain = Domain::where('id', $id)->where('is_active', true)->firstOrFail();
-            session(['active_domain_id' => $domain->id]);
-            $msg = "Now managing: {$domain->name}";
+        if (! $id) {
+            $request->session()->forget('active_domain_id');
+            $this->syncTenantEnvFile(null);
+
+            return redirect()
+                ->route('domains.select')
+                ->with('success', 'Select a website to manage its content.');
         }
+
+        $domain = Domain::where('id', $id)->where('is_active', true)->firstOrFail();
+        session(['active_domain_id' => $domain->id]);
+        $this->syncTenantEnvFile($domain);
+        $msg = "Now managing: {$domain->name}";
 
         return $redirect === 'dashboard'
             ? redirect()->route('dashboard')->with('success', $msg)
             : back()->with('success', $msg);
+    }
+
+    /**
+     * Mirror active site DB into .env as CMS_TENANT_* (optional single-server workflow).
+     */
+    private function syncTenantEnvFile(?Domain $domain): void
+    {
+        TenantArtisanDatabase::syncEnvToFile($domain);
     }
 
     /**
@@ -220,43 +288,89 @@ class DomainController extends Controller
     public function syncSchema(Domain $domain): RedirectResponse
     {
         try {
-            config(['database.connections.tenant' => $domain->connectionConfig()]);
-            DB::purge('tenant');
-            DB::reconnect('tenant');
+            TenantArtisanDatabase::prepare($domain);
 
             Artisan::call('migrate', [
-                '--database' => 'tenant',
+                '--database' => TenantArtisanDatabase::CONNECTION,
                 '--force'    => true,
             ]);
 
             $output = Artisan::output();
-            return back()->with('success', "Schema synced for \"{$domain->name}\". " . trim($output));
+            $target = TenantArtisanDatabase::label($domain);
+
+            return back()->with('success', "Schema synced for \"{$domain->name}\" on {$target}. ".trim($output));
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            return back()->with('error', 'Schema sync failed: ' . $e->getMessage());
+            return back()->with('error', 'Schema sync failed: '.$e->getMessage());
+        } finally {
+            TenantArtisanDatabase::restore();
         }
     }
 
     /**
-     * Drop all tables in the domain's database, re-run all migrations,
-     * then run the database seeders. USE WITH CAUTION — destroys all data.
+     * Drop all tables in the domain's database, then re-run all migrations.
+     * Uses manual table dropping instead of `migrate:fresh` to avoid the
+     * default-connection seeder issue (seeder runs on mysql, not tenant).
+     * USE WITH CAUTION — destroys all data in the tenant DB.
      */
     public function migrateFresh(Domain $domain): RedirectResponse
     {
         try {
-            config(['database.connections.tenant' => $domain->connectionConfig()]);
-            DB::purge('tenant');
-            DB::reconnect('tenant');
+            TenantArtisanDatabase::prepare($domain);
+            $conn = DB::connection(TenantArtisanDatabase::CONNECTION);
 
-            Artisan::call('migrate:fresh', [
-                '--database' => 'tenant',
+            // Disable FK checks so we can drop tables in any order
+            $conn->statement('SET FOREIGN_KEY_CHECKS=0');
+            $tables = $conn->select('SHOW TABLES');
+            foreach ($tables as $row) {
+                $table = array_values((array) $row)[0];
+                $conn->statement('DROP TABLE IF EXISTS `'.$table.'`');
+            }
+            $conn->statement('SET FOREIGN_KEY_CHECKS=1');
+
+            Artisan::call('migrate', [
+                '--database' => TenantArtisanDatabase::CONNECTION,
                 '--force'    => true,
-                '--seed'     => true,
             ]);
 
-            $output = Artisan::output();
-            return back()->with('success', "Fresh migrate + seed complete for \"{$domain->name}\". " . trim($output));
+            $output  = trim(Artisan::output());
+            $summary = $output ?: 'All migrations ran successfully.';
+            $target  = TenantArtisanDatabase::label($domain);
+
+            return back()->with('success', "Fresh migrate complete for \"{$domain->name}\" on {$target}. All tables rebuilt. {$summary}");
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (\Throwable $e) {
-            return back()->with('error', 'Fresh migration failed: ' . $e->getMessage());
+            return back()->with('error', 'Fresh migration failed: '.$e->getMessage());
+        } finally {
+            TenantArtisanDatabase::restore();
+        }
+    }
+    /**
+     * Roll back the last batch of migrations on the domain's database.
+     */
+    public function rollbackSchema(Domain $domain): RedirectResponse
+    {
+        try {
+            TenantArtisanDatabase::prepare($domain);
+
+            Artisan::call('migrate:rollback', [
+                '--database' => TenantArtisanDatabase::CONNECTION,
+                '--force'    => true,
+            ]);
+
+            $output  = trim(Artisan::output());
+            $summary = $output ?: 'Last migration batch rolled back.';
+            $target  = TenantArtisanDatabase::label($domain);
+
+            return back()->with('success', "Rollback complete for \"{$domain->name}\" on {$target}. {$summary}");
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Rollback failed: '.$e->getMessage());
+        } finally {
+            TenantArtisanDatabase::restore();
         }
     }
 }

@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const page = usePage();
 const pages = ref([]);
@@ -35,6 +36,14 @@ const filteredPages = computed(() => {
   );
 });
 
+const perPage     = 20;
+const currentPage = ref(1);
+const pagedPages  = computed(() => {
+  const start = (currentPage.value - 1) * perPage;
+  return filteredPages.value.slice(start, start + perPage);
+});
+watch(searchQuery, () => { currentPage.value = 1; });
+
 onMounted(async () => {
   const params = new URLSearchParams(window.location.search);
   const s = params.get('success');
@@ -50,23 +59,31 @@ onMounted(async () => {
   }
 });
 
-function setPagePublishedInTree(tree, id, value) {
+const STATUS_OPTIONS = [
+  { value: 'draft',    label: 'Draft',    desc: 'Not visible on site' },
+  { value: 'visible',  label: 'Visible',  desc: 'Live on frontend'    },
+  { value: 'disabled', label: 'Disabled', desc: 'Hidden from site'    },
+];
+
+function setPageFieldInTree(tree, id, fields) {
   if (!tree || !tree.length) return false;
   for (const n of tree) {
-    if (n.id === id) {
-      n.is_published = value;
-      return true;
-    }
-    if (n.children?.length && setPagePublishedInTree(n.children, id, value)) return true;
+    if (n.id === id) { Object.assign(n, fields); return true; }
+    if (n.children?.length && setPageFieldInTree(n.children, id, fields)) return true;
   }
   return false;
 }
 
-async function togglePublish(p) {
+async function changeStatus(p, newVisibility) {
+  if (p.visibility === newVisibility) return;
+  const prev = p.visibility;
+  setPageFieldInTree(pages.value, p.id, { visibility: newVisibility });
   try {
-    const { data } = await window.axios.post(`/api/pages/${p.id}/toggle-publish`);
-    setPagePublishedInTree(pages.value, p.id, data.is_published);
+    const { data } = await window.axios.patch(`/api/pages/${p.id}/status`, { visibility: newVisibility });
+    setPageFieldInTree(pages.value, p.id, { visibility: data.visibility, is_published: data.is_published });
+    successMessage.value = data.message || 'Status updated.';
   } catch (e) {
+    setPageFieldInTree(pages.value, p.id, { visibility: prev });
     const msg = e.response?.data?.message || 'Failed to update status.';
     alert(msg);
   }
@@ -140,12 +157,12 @@ async function destroy(p) {
               <th>Slug</th>
               <th>Parent</th>
               <th>Placement</th>
-              <th>Published</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="p in filteredPages" :key="p.id" :class="{ 'admin-list-row-child': p._level > 0 }">
+            <tr v-for="p in pagedPages" :key="p.id" :class="{ 'admin-list-row-child': p._level > 0 }">
               <td :style="p._level ? { paddingLeft: (p._level * 1.25 + 0.5) + 'rem' } : {}">
                 <span v-if="p._level">↳</span>
                 {{ p.title }}
@@ -160,15 +177,15 @@ async function destroy(p) {
                 <span v-else class="admin-text-muted">—</span>
               </td>
               <td>
-                <button
-                  type="button"
-                  class="admin-list-link admin-publish-toggle"
-                  :class="{ 'is-published': p.is_published }"
-                  :title="p.is_published ? 'Click to unpublish' : 'Click to publish'"
-                  @click="togglePublish(p)"
+                <select
+                  :value="p.visibility || 'draft'"
+                  class="admin-status-select"
+                  :class="`admin-status-select--${p.visibility || 'draft'}`"
+                  :title="`Status: ${p.visibility || 'draft'}`"
+                  @change="changeStatus(p, $event.target.value)"
                 >
-                  {{ p.is_published ? 'Published' : 'Unpublished' }}
-                </button>
+                  <option v-for="s in STATUS_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</option>
+                </select>
               </td>
               <td>
                 <Link :href="route('pages.edit', p.id)" class="admin-list-link">Edit</Link>
@@ -185,6 +202,13 @@ async function destroy(p) {
             </tr>
           </tbody>
         </table>
+        <Pagination
+          v-if="!loading"
+          :total="filteredPages.length"
+          :per-page="perPage"
+          :current-page="currentPage"
+          @update:current-page="currentPage = $event"
+        />
         <p v-if="!loading && !filteredPages.length" class="admin-text-muted" style="padding: 1.5rem;">No pages yet. Add a page to get started.</p>
       </div>
     </div>

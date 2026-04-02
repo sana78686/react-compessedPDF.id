@@ -32,9 +32,12 @@ export default function SiteLayout({ children }) {
   const headerPages = cmsPages.filter((p) => !p.placement || p.placement === 'header' || p.placement === 'both')
   const footerPages = cmsPages.filter((p) => !p.placement || p.placement === 'footer' || p.placement === 'both')
 
-  /** Header nav tree: roots with .children (only for pages that have children in headerPages) */
+  /** Header nav tree: roots + pages whose parent is not in this nav (so they are not hidden). */
   const headerNavTree = useMemo(() => {
-    const roots = headerPages.filter((p) => !p.parent_id).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    const ids = new Set(headerPages.map((p) => p.id))
+    const roots = headerPages
+      .filter((p) => p.parent_id == null || !ids.has(p.parent_id))
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     return roots.map((root) => ({
       ...root,
       children: headerPages.filter((p) => p.parent_id === root.id).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
@@ -58,15 +61,21 @@ export default function SiteLayout({ children }) {
 
   useEffect(() => {
     const id = requestIdleCallback
-      ? requestIdleCallback(() => {
+        ? requestIdleCallback(() => {
           getPages()
             .then((res) => setCmsPages(res.pages || []))
-            .catch(() => setCmsPages([]))
+            .catch((err) => {
+              if (import.meta.env.DEV) console.warn('[cms] getPages failed — check API URL, CORS, and VITE_SITE_DOMAIN vs CMS Domains row:', err)
+              setCmsPages([])
+            })
         }, { timeout: 2000 })
       : setTimeout(() => {
           getPages()
             .then((res) => setCmsPages(res.pages || []))
-            .catch(() => setCmsPages([]))
+            .catch((err) => {
+              if (import.meta.env.DEV) console.warn('[cms] getPages failed — check API URL, CORS, and VITE_SITE_DOMAIN vs CMS Domains row:', err)
+              setCmsPages([])
+            })
         }, 0)
     return () => (requestIdleCallback ? cancelIdleCallback(id) : clearTimeout(id))
   }, [])

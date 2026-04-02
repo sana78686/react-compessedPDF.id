@@ -11,6 +11,9 @@ use App\Notifications\VerifyEmailWithOtp;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
+    /** CMS admins always on registry DB (`mysql`) — never a site tenant DB. */
+    protected $connection = 'mysql';
+
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
 

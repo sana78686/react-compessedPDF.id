@@ -74,13 +74,12 @@ class PublicApiController extends Controller
         return response()->json(['message' => 'Message sent successfully.']);
     }
     /**
-     * List published pages for nav/sitemap (no auth).
-     * Returns roots and children with parent_id so the frontend can show children under parent links.
+     * List publicly visible pages for nav/sitemap (no auth).
+     * Uses visibility only — not is_published — so "visible" pages show on the React site.
      */
     public function pages(Request $request): JsonResponse
     {
-        $pages = Page::where('is_published', true)
-            ->where('visibility', Page::VISIBILITY_PUBLISHED)
+        $pages = Page::where('visibility', Page::VISIBILITY_VISIBLE)
             ->orderByRaw('parent_id IS NULL DESC')
             ->orderBy('sort_order')
             ->orderBy('title')
@@ -94,20 +93,20 @@ class PublicApiController extends Controller
                 'meta_description' => $p->meta_description,
                 'placement' => $p->placement,
                 'sort_order' => $p->sort_order,
-                
+
             ]);
 
         return response()->json(['pages' => $pages]);
     }
 
     /**
-     * Get a single published page by slug with full content and SEO (no auth).
+     * Get a single page by slug with full content and SEO (no auth).
+     * Public access when visibility is visible (not gated on is_published).
      */
     public function pageBySlug(string $slug): JsonResponse
     {
         $page = Page::where('slug', $slug)
-            ->where('is_published', true)
-            ->where('visibility', Page::VISIBILITY_PUBLISHED)
+            ->where('visibility', Page::VISIBILITY_VISIBLE)
             ->first();
 
         if (! $page) {
@@ -137,7 +136,7 @@ class PublicApiController extends Controller
     public function blogs(Request $request): JsonResponse
     {
         $blogs = Blog::where('is_published', true)
-            ->where('visibility', Blog::VISIBILITY_PUBLISHED)
+            ->where('visibility', Blog::VISIBILITY_VISIBLE)
             ->orderBy('published_at', 'desc')
             ->orderBy('title')
             ->get(['id', 'title', 'slug', 'excerpt', 'published_at', 'og_title', 'og_description', 'og_image'])
@@ -161,7 +160,7 @@ class PublicApiController extends Controller
     {
         $blog = Blog::where('slug', $slug)
             ->where('is_published', true)
-            ->where('visibility', Blog::VISIBILITY_PUBLISHED)
+            ->where('visibility', Blog::VISIBILITY_VISIBLE)
             ->first();
 
         if (! $blog) {

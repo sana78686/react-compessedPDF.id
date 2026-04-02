@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Domain extends Model
 {
-    /** Lives on the master DB, never on the tenant DB. */
+    /** CMS registry DB only (`mysql` connection), never a site tenant DB. */
     protected $connection = 'mysql';
 
     protected $fillable = [
@@ -56,5 +56,33 @@ class Domain extends Model
             'strict'    => true,
             'engine'    => null,
         ];
+    }
+
+    /**
+     * True when this domain's credentials point at the same database as the CMS registry (mysql).
+     * Schema actions must never run on the registry (domains + admin data live there).
+     */
+    public function targetsMasterDatabase(): bool
+    {
+        $master = config('database.connections.mysql', []);
+        $mHost  = self::normalizeDbHost((string) ($master['host'] ?? ''));
+        $mPort  = (int) ($master['port'] ?? 3306);
+        $mDb    = (string) ($master['database'] ?? '');
+
+        $dHost = self::normalizeDbHost((string) $this->db_host);
+        $dPort = (int) $this->db_port;
+        $dDb   = (string) $this->db_name;
+
+        return $dHost === $mHost && $dPort === $mPort && $dDb === $mDb;
+    }
+
+    private static function normalizeDbHost(string $host): string
+    {
+        $h = strtolower(trim($host));
+        if ($h === 'localhost') {
+            $h = '127.0.0.1';
+        }
+
+        return $h;
     }
 }
