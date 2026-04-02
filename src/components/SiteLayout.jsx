@@ -3,14 +3,22 @@ import { useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import { supportedLangs, langOptions, defaultLang } from '../i18n/translations'
 import { langShortLabel } from '../i18n/langMeta'
-import { getPages, getLegalPage } from '../api/cms'
+import { getPages, getLegalNav, getFaq } from '../api/cms'
 import BrandLogo from './BrandLogo'
 import LangFlag from './LangFlag'
 import '../pages/HomePage.css'
 
-function legalBodyPresent(html) {
-  if (html == null || typeof html !== 'string') return false
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length > 0
+function faqListHasContent(res) {
+  const list = res?.faq
+  if (!Array.isArray(list) || list.length === 0) return false
+  return list.some((item) => {
+    const strip = (s) =>
+      String(s ?? '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+    return strip(item.question).length > 0 || strip(item.answer).length > 0
+  })
 }
 
 /* Lazy-load footer for faster LCP */
@@ -43,7 +51,8 @@ export default function SiteLayout({ children }) {
   const [langDropdownOpen, setLangDropdownOpen] = useState(false)
   const langDropdownRef = useRef(null)
   const [footerPages, setFooterPages] = useState([])
-  const [legalInFooter, setLegalInFooter] = useState({ privacy: false, terms: false })
+  const [legalVisibility, setLegalVisibility] = useState({})
+  const [showFaqLink, setShowFaqLink] = useState(false)
 
   const locale = supportedLangs.includes(lang) ? lang : defaultLang
 
@@ -51,15 +60,14 @@ export default function SiteLayout({ children }) {
     let cancelled = false
     Promise.all([
       getPages(locale).catch(() => ({ pages: [] })),
-      getLegalPage('privacy-policy', locale).catch(() => null),
-      getLegalPage('terms', locale).catch(() => null),
-    ]).then(([pagesRes, privacyRes, termsRes]) => {
+      getLegalNav(locale).catch(() => ({ legal: {} })),
+      getFaq(locale).catch(() => ({ faq: [] })),
+    ]).then(([pagesRes, legalNavRes, faqRes]) => {
       if (cancelled) return
       setFooterPages(Array.isArray(pagesRes?.pages) ? pagesRes.pages : [])
-      setLegalInFooter({
-        privacy: legalBodyPresent(privacyRes?.content),
-        terms: legalBodyPresent(termsRes?.content),
-      })
+      const legal = legalNavRes?.legal
+      setLegalVisibility(legal && typeof legal === 'object' ? legal : {})
+      setShowFaqLink(faqListHasContent(faqRes))
     })
     return () => {
       cancelled = true
@@ -139,7 +147,8 @@ export default function SiteLayout({ children }) {
           pathname={pathname}
           t={t}
           footerPages={footerPages}
-          legalInFooter={legalInFooter}
+          legalVisibility={legalVisibility}
+          showFaqLink={showFaqLink}
         />
       </Suspense>
     </div>

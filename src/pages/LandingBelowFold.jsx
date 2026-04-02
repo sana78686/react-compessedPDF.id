@@ -32,7 +32,7 @@ export default function LandingBelowFold({ t, faqItems, faqOpenIndex, setFaqOpen
   return (
     <>
       {faqItems.length > 0 && (
-        <section className="landing-section landing-faq" aria-labelledby="landing-faq-heading">
+        <section id="landing-faq" className="landing-section landing-faq" aria-labelledby="landing-faq-heading">
           <h2 id="landing-faq-heading" className="landing-section-title">{t('landing.faqTitle')}</h2>
           <div className="landing-faq-list" role="list">
             {faqItems.map((item, i) => (

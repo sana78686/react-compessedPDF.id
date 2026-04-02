@@ -62,6 +62,7 @@ export const translations = {
     footerPress: 'Press',
     footerPrivacy: 'Privacy policy',
     footerTerms: 'Terms & conditions',
+    footerDisclaimer: 'Disclaimer',
     footerCookies: 'Cookies',
     footerAbout: 'About us',
     footerContact: 'Contact us',

@@ -142,3 +142,8 @@ export function getHomeSeo(locale) {
 export function getLegalPage(slug, locale) {
   return request(`/legal/${encodeURIComponent(slug)}`, { locale })
 }
+
+/** @param {string} [locale] @returns {Promise<{ legal: Record<string, boolean> }>} */
+export function getLegalNav(locale) {
+  return request('/legal-nav', { locale })
+}

@@ -4,13 +4,25 @@ import LangFlag from './LangFlag'
 import { ucWords } from '../utils/ucWords'
 import './Footer.css'
 
+/** Stable order for /legal/{slug} links (matches CMS slugs). */
+const LEGAL_SLUG_ORDER = ['terms', 'privacy-policy', 'disclaimer', 'about-us', 'cookie-policy']
+
+const LEGAL_LABEL_KEY = {
+  terms: 'footerTerms',
+  'privacy-policy': 'footerPrivacy',
+  disclaimer: 'footerDisclaimer',
+  'about-us': 'footerAbout',
+  'cookie-policy': 'footerCookies',
+}
+
 /** CMS pages: only placement footer or both appear under OTHER. */
 export default function Footer({
   lang,
   pathname,
   t,
   footerPages = [],
-  legalInFooter = { privacy: false, terms: false },
+  legalVisibility = {},
+  showFaqLink = false,
 }) {
   const [langOpen, setLangOpen] = useState(false)
   const langRef = useRef(null)
@@ -18,6 +30,9 @@ export default function Footer({
   const cmsFooterLinks = footerPages.filter(
     (p) => p.placement === 'footer' || p.placement === 'both',
   )
+
+  const legalLinksToShow = LEGAL_SLUG_ORDER.filter((slug) => legalVisibility[slug])
+  const showLegalColumn = legalLinksToShow.length > 0
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -40,6 +55,9 @@ export default function Footer({
               <h3 className="footer-col-title">{t('footerCompany')}</h3>
               <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
               <a href={`/${langPrefix}/contact`}>{t('footerContact')}</a>
+              {showFaqLink && (
+                <a href={`/${langPrefix}#landing-faq`}>{t('footerFaq')}</a>
+              )}
             </div>
             {cmsFooterLinks.length > 0 && (
               <div className="footer-col">
@@ -51,15 +69,14 @@ export default function Footer({
                 ))}
               </div>
             )}
-            {(legalInFooter.privacy || legalInFooter.terms) && (
+            {showLegalColumn && (
               <div className="footer-col">
                 <h3 className="footer-col-title">{t('footerLegal')}</h3>
-                {legalInFooter.privacy && (
-                  <a href={`/${langPrefix}/legal/privacy-policy`}>{t('footerPrivacy')}</a>
-                )}
-                {legalInFooter.terms && (
-                  <a href={`/${langPrefix}/legal/terms`}>{t('footerTerms')}</a>
-                )}
+                {legalLinksToShow.map((slug) => (
+                  <a key={slug} href={`/${langPrefix}/legal/${slug}`}>
+                    {t(LEGAL_LABEL_KEY[slug])}
+                  </a>
+                ))}
               </div>
             )}
           </div>

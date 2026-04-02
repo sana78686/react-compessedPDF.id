@@ -58,6 +58,7 @@ export default {
   footerPress: 'Pers',
   footerPrivacy: 'Kebijakan privasi',
   footerTerms: 'Syarat & ketentuan',
+  footerDisclaimer: 'Penafian',
   footerCookies: 'Cookie',
   footerAbout: 'Tentang kami',
   footerContact: 'Hubungi kami',
