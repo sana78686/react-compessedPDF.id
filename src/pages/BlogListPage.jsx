@@ -25,14 +25,15 @@ export default function BlogListPage() {
 
   useEffect(() => {
     document.documentElement.lang = lang
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
   }, [lang])
 
   useEffect(() => {
-    getBlogs()
+    getBlogs(langPrefix)
       .then((res) => setBlogs(res.blogs || []))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [langPrefix])
 
   if (loading) {
     return (
@@ -60,7 +61,10 @@ export default function BlogListPage() {
         <p className="blog-list-intro">{t('blog.listIntro')}</p>
       </header>
       {blogs.length === 0 ? (
-        <p className="blog-list-empty">{t('blog.noPosts')}</p>
+        <div className="blog-list-empty-state" role="status" aria-live="polite">
+          <h2 className="blog-list-empty-title">{t('blog.emptyTitle')}</h2>
+          <p className="blog-list-empty-text">{t('blog.emptyBody')}</p>
+        </div>
       ) : (
         <div className="blog-list-grid">
           {blogs.map((post) => (

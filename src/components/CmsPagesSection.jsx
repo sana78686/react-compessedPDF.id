@@ -13,7 +13,10 @@ export function CmsPagesSection() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getPages().catch(() => ({ pages: [] })), getBlogs().catch(() => ({ blogs: [] }))])
+    Promise.all([
+      getPages(langPrefix).catch(() => ({ pages: [] })),
+      getBlogs(langPrefix).catch(() => ({ blogs: [] })),
+    ])
       .then(([pagesRes, blogsRes]) => {
         if (cancelled) return
         setPages(pagesRes.pages || [])
@@ -23,7 +26,7 @@ export function CmsPagesSection() {
       .catch(() => setLoaded(true))
 
     return () => { cancelled = true }
-  }, [])
+  }, [langPrefix])
 
   if (!loaded || (pages.length === 0 && blogs.length === 0)) return null
 

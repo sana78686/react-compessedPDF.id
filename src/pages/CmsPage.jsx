@@ -15,11 +15,11 @@ export default function CmsPage() {
     if (!slug) return
     setLoading(true)
     setError(null)
-    getPageBySlug(slug)
+    getPageBySlug(slug, lang)
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, lang])
 
   const langPrefix = supportedLangs.includes(lang) ? lang : getPreferredLang()
 

@@ -33,6 +33,19 @@
   flex-wrap: wrap;
 }
 
+/* Logo + language only (no main nav links) */
+.header-inner--minimal {
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-inner--minimal .header-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .logo {
   font-size: 1.5rem;
   font-weight: 700;
@@ -48,6 +61,56 @@
   max-width: 180px;
   display: block;
   object-fit: contain;
+}
+
+/* Brand logo: icon + wordmark (see BrandLogo.jsx) */
+.logo--brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.logo-icon-wrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.logo-icon-svg {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.logo--brand:hover .logo-icon-wrap {
+  transform: translateY(-1px);
+}
+
+.logo-wordmark {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  text-align: start;
+}
+
+.logo-wordmark-text {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+  color: #1c1917;
+  white-space: nowrap;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.logo--brand:hover .logo-wordmark-text {
+  color: var(--accent-red);
 }
 
 .logo:hover {
@@ -227,9 +290,17 @@
   box-shadow: 0 0 0 2px rgba(224, 61, 61, 0.2);
 }
 
+.lang-flag-img {
+  display: block;
+  border-radius: 3px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
 .lang-dropdown-flag {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
 }
 
 .lang-dropdown-label {
@@ -298,8 +369,10 @@
 }
 
 .lang-dropdown-item-flag {
-  font-size: 1.25rem;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  flex-shrink: 0;
 }
 
 .lang-dropdown-item-label {
@@ -370,15 +443,18 @@
 }
 
 /* Home page rich text (above FAQ) – CMS editor content */
+/* Left-align like FAQ / how-it-works (.main--landing is text-align: center) */
 .landing-home-content {
   padding-top: 0;
   padding-bottom: 1.5rem;
+  text-align: left;
 }
 .landing-home-content-body {
   max-width: 100%;
   font-size: 1rem;
   line-height: 1.6;
   color: var(--text-primary);
+  text-align: left;
 }
 .landing-home-content-body :first-child { margin-top: 0; }
 .landing-home-content-body :last-child { margin-bottom: 0; }
@@ -391,6 +467,63 @@
 .landing-home-content-body a { color: var(--accent-red, #e03d3d); text-decoration: none; }
 .landing-home-content-body a:hover { text-decoration: underline; }
 .landing-home-content-body ul, .landing-home-content-body ol { margin: 0.75em 0; padding-left: 1.5em; }
+
+/* Default fallback SEO block (when CMS home body is empty) */
+.landing-home-content-body .default-landing-seo {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 250, 252, 0.98) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+.landing-home-content-body .default-landing-lead {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  color: var(--text-primary);
+}
+.landing-home-content-body .default-landing-seo h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.landing-home-content-body .default-landing-seo h2:first-of-type { margin-top: 0.25rem; }
+.landing-home-content-body .default-landing-list,
+.landing-home-content-body .default-landing-steps {
+  margin: 0.65em 0 1em;
+  padding-left: 1.35em;
+}
+.landing-home-content-body .default-landing-list li,
+.landing-home-content-body .default-landing-steps li {
+  margin: 0.4em 0;
+  line-height: 1.55;
+}
+.landing-home-content-body .default-landing-note {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  font-size: 0.9rem;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .landing-home-content-body .default-landing-seo {
+    padding: 1rem 1rem;
+    border-radius: 10px;
+  }
+  .landing-home-content-body .default-landing-seo h2 {
+    font-size: 1.1rem;
+  }
+  .landing-home-content-body .default-landing-lead {
+    font-size: 1rem;
+  }
+}
 
 /* Feature cards grid */
 .landing-features {
@@ -627,7 +760,11 @@
 }
 
 .upload-zone--dragging {
-  opacity: 0.95;
+  opacity: 1;
+  outline: 2px dashed var(--accent-red);
+  outline-offset: 0.5rem;
+  border-radius: 8px;
+  background: rgba(224, 61, 61, 0.04);
 }
 
 .upload-actions {
@@ -691,6 +828,7 @@
 
 .upload-hint {
   margin: 1.25rem 0 0;
+  cursor: pointer;
   font-size: 0.95rem;
   color: var(--text-muted);
 }
@@ -1291,15 +1429,31 @@
 
 /* Mobile */
 @media (max-width: 640px) {
-  .header-inner {
+  .header-inner:not(.header-inner--minimal) {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
   }
 
+  .header-inner--minimal {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .header-inner--minimal .header-actions {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
   .logo {
     font-size: 1.35rem;
+    flex-shrink: 0;
+    min-width: 0;
   }
 
   .logo img {
@@ -1307,7 +1461,23 @@
     max-width: 140px;
   }
 
-  .nav {
+  .logo--brand {
+    gap: 0.5rem;
+  }
+
+  .logo-icon-svg {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .logo-wordmark-text {
+    font-size: 0.9375rem;
+    max-width: 52vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-inner:not(.header-inner--minimal) .nav {
     order: 3;
     width: 100%;
     gap: 0.75rem;
@@ -1318,12 +1488,12 @@
     padding-bottom: 0.25rem;
   }
 
-  .nav a {
+  .header-inner:not(.header-inner--minimal) .nav a {
     flex-shrink: 0;
     font-size: 0.8rem;
   }
 
-  .header-actions {
+  .header-inner:not(.header-inner--minimal) .header-actions {
     order: 2;
     margin-left: 0;
     justify-content: flex-end;

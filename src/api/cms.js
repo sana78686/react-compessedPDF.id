@@ -25,17 +25,24 @@ function publicApiRoot() {
   return `/${host}/api/public`
 }
 
+function withLocaleQuery(path, locale) {
+  if (!locale) return path
+  const joiner = path.includes('?') ? '&' : '?'
+  return `${path}${joiner}locale=${encodeURIComponent(locale)}`
+}
+
 async function request(path, options = {}) {
-  const url = `${CMS_API_BASE}${publicApiRoot()}${path}`
+  const { locale, ...fetchOptions } = options
+  const url = `${CMS_API_BASE}${publicApiRoot()}${withLocaleQuery(path, locale)}`
   const headers = {
     Accept: 'application/json',
-    ...options.headers,
+    ...fetchOptions.headers,
   }
   if (!useDomainInApiPath) {
     headers['X-Domain'] = resolveSiteDomainForApi()
   }
   const res = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     headers,
   })
   if (!res.ok) {
@@ -45,14 +52,14 @@ async function request(path, options = {}) {
   return res.json()
 }
 
-/** @returns {Promise<{ pages: Array<{ id: number, title: string, slug: string, meta_title?: string, meta_description?: string }> }>} */
-export function getPages() {
-  return request('/pages')
+/** @param {string} [locale] - BCP-style code: en, ms, es, fr, ar, ru */
+export function getPages(locale) {
+  return request('/pages', { locale })
 }
 
-/** @param {string} slug */
-export function getPageBySlug(slug) {
-  return request(`/pages/${encodeURIComponent(slug)}`)
+/** @param {string} slug @param {string} [locale] */
+export function getPageBySlug(slug, locale) {
+  return request(`/pages/${encodeURIComponent(slug)}`, { locale })
 }
 
 /**
@@ -76,18 +83,18 @@ function normalizeBlogsResponse(res) {
 }
 
 /**
- * Fetch list of published blogs. Accepts { blogs }, { data }, { data: { data } }, or direct array.
+ * @param {string} [locale]
  * @returns {Promise<{ blogs: Array<{ id: number, title: string, slug: string, excerpt?: string, published_at?: string, og_image?: string, image?: string }> }>}
  */
-export function getBlogs() {
-  return request('/blogs').then((res) => ({
+export function getBlogs(locale) {
+  return request('/blogs', { locale }).then((res) => ({
     blogs: normalizeBlogsResponse(res),
   }))
 }
 
-/** @param {string} slug */
-export function getBlogBySlug(slug) {
-  return request(`/blogs/${encodeURIComponent(slug)}`)
+/** @param {string} slug @param {string} [locale] */
+export function getBlogBySlug(slug, locale) {
+  return request(`/blogs/${encodeURIComponent(slug)}`, { locale })
 }
 
 /** @returns {Promise<{ contact_email?: string, contact_phone?: string, contact_address?: string }>} */
@@ -107,30 +114,29 @@ export function submitContactForm(data) {
   })
 }
 
-/** @returns {Promise<{ faq: Array<{ id: number, question: string, answer: string, sort_order: number }> }>} */
-export function getFaq() {
-  return request('/faq')
+/** @param {string} [locale] */
+export function getFaq(locale) {
+  return request('/faq', { locale })
 }
 
-/** @returns {Promise<{ cards: Array<{ id: number, title: string, description: string, icon: string|null, sort_order: number }> }>} */
-export function getHomeCards() {
-  return request('/home-cards')
+/** @param {string} [locale] */
+export function getHomeCards(locale) {
+  return request('/home-cards', { locale })
 }
 
-/** @returns {Promise<{ content: string }>} Home page rich text (HTML) shown above FAQ */
-export function getHomePageContent() {
-  return request('/home-content')
+/** @param {string} [locale] */
+export function getHomePageContent(locale) {
+  return request('/home-content', { locale })
 }
 
-/** @returns {Promise<{ meta_title: string, meta_description: string, meta_keywords: string, focus_keyword: string, og_title: string, og_description: string, og_image: string }>} Home page SEO meta tags */
-export function getHomeSeo() {
-  return request('/home-content')
+/** @param {string} [locale] */
+export function getHomeSeo(locale) {
+  return request('/home-content', { locale })
 }
 
 /**
  * Legal/content page by slug: terms, privacy-policy, disclaimer, about-us, cookie-policy.
  * @param {string} slug
- * @returns {Promise<{ slug: string, title: string, content: string }>}
  */
 export function getLegalPage(slug) {
   return request(`/legal/${encodeURIComponent(slug)}`)

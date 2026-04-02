@@ -41,11 +41,11 @@ export default function CmsBlog() {
     if (!slug) return
     setLoading(true)
     setError(null)
-    getBlogBySlug(slug)
+    getBlogBySlug(slug, lang)
       .then(setData)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, lang])
 
   const langPrefix = supportedLangs.includes(lang) ? lang : getPreferredLang()
 

@@ -62,9 +62,9 @@ function cmsSeoInjectPlugin(viteEnv) {
             ).replace(/\/$/, '')
             const siteDomain = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
             const useDomainPath = viteEnv.VITE_API_DOMAIN_PATH !== 'false'
-            const homeUrl = useDomainPath
+            const homeUrl = (useDomainPath
               ? `${apiBase}/${siteDomain}/api/public/home-content`
-              : `${apiBase}/api/public/home-content`
+              : `${apiBase}/api/public/home-content`) + '?locale=en'
             const headers = { Accept: 'application/json' }
             if (!useDomainPath) {
               headers['X-Domain'] = siteDomain

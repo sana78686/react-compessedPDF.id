@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
+import CmsLangFlag from '@/Components/CmsLangFlag.vue';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import '../../css/admin.css';
@@ -13,6 +14,38 @@ const page = usePage();
 const user          = computed(() => page.props.auth?.user ?? {});
 const domains       = computed(() => page.props.domains ?? []);
 const activeDomain  = computed(() => page.props.activeDomain ?? null);
+const cmsLocale     = computed(() => page.props.cmsLocale ?? 'en');
+const cmsLocales    = computed(() => page.props.cmsLocales ?? ['en', 'ms', 'es', 'fr', 'ar', 'ru']);
+
+const cmsLocaleLabels = {
+  en: 'EN · English',
+  ms: 'MS · Melayu',
+  es: 'ES · Español',
+  fr: 'FR · Français',
+  ar: 'AR · العربية',
+  ru: 'RU · Русский',
+};
+
+const showCmsLocaleSwitcher = computed(() => {
+  if (!activeDomain.value) return false;
+  const u = (page.url || '').replace(/^\//, '');
+  return /^(en|ms|es|fr|ar|ru)(\/|$)/.test(u);
+});
+
+const cmsLangOpen = ref(false);
+const cmsLangEl = ref(null);
+
+/** Switch CMS URL locale (same pattern as frontend /en/... → /fr/...). */
+function visitCmsLocale(l) {
+  const url = page.url || '';
+  const [pathPart, query] = url.split('?');
+  const path = pathPart.startsWith('/') ? pathPart : `/${pathPart}`;
+  const newPath = path.replace(/^\/(en|ms|es|fr|ar|ru)(?=\/|$)/, `/${l}`);
+  const target = newPath + (query ? `?${query}` : '');
+  cmsLangOpen.value = false;
+  router.visit(target, { preserveScroll: true });
+}
+
 const domainDropOpen = ref(false);
 const domainDropEl   = ref(null);
 
@@ -129,6 +162,9 @@ function onDocumentClick(e) {
   }
   if (domainDropOpen.value && domainDropEl.value && !domainDropEl.value.contains(e.target)) {
     domainDropOpen.value = false;
+  }
+  if (cmsLangOpen.value && cmsLangEl.value && !cmsLangEl.value.contains(e.target)) {
+    cmsLangOpen.value = false;
   }
 }
 
@@ -486,6 +522,45 @@ onUnmounted(() => document.removeEventListener('click', onDocumentClick));
         </div>
 
         <div class="admin-header-right">
+
+          <div
+            v-if="showCmsLocaleSwitcher"
+            ref="cmsLangEl"
+            class="admin-lang-dropdown"
+          >
+            <span id="admin-cms-locale-label" class="visually-hidden">Content language — URLs use /en/, /fr/, … Pages and blogs save for the active locale.</span>
+            <button
+              type="button"
+              class="admin-lang-dropdown-trigger"
+              aria-labelledby="admin-cms-locale-label"
+              :aria-expanded="cmsLangOpen"
+              aria-haspopup="listbox"
+              @click.stop="cmsLangOpen = !cmsLangOpen"
+            >
+              <CmsLangFlag :lang="cmsLocale" :width="20" />
+              <span class="admin-lang-dropdown-trigger-text">{{ cmsLocaleLabels[cmsLocale] || cmsLocale }}</span>
+              <span class="admin-lang-dropdown-chevron" aria-hidden="true">▼</span>
+            </button>
+            <ul
+              v-show="cmsLangOpen"
+              class="admin-lang-dropdown-menu"
+              role="listbox"
+            >
+              <li v-for="l in cmsLocales" :key="l" role="none">
+                <button
+                  type="button"
+                  class="admin-lang-dropdown-item"
+                  :class="{ 'is-active': l === cmsLocale }"
+                  role="option"
+                  :aria-selected="l === cmsLocale"
+                  @click="visitCmsLocale(l)"
+                >
+                  <CmsLangFlag :lang="l" :width="20" />
+                  <span>{{ cmsLocaleLabels[l] || l }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
 
           <!-- Domain switcher pill -->
           <div v-if="domains.length" class="admin-domain-menu" ref="domainDropEl" style="position:relative;margin-right:.75rem;">

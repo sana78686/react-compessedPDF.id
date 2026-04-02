@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Domain;
+use App\Support\ContentLocales;
 use App\Support\TenantArtisanDatabase;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,11 @@ use Inertia\Response;
 
 class DomainController extends Controller
 {
+    private function cmsLocaleForRedirect(Request $request): string
+    {
+        return ContentLocales::normalize($request->session()->get('cms_locale'));
+    }
+
     /**
      * Test raw DB credentials (from Add/Edit form before saving).
      * Returns JSON so Vue can show inline result without page reload.
@@ -117,7 +123,6 @@ class DomainController extends Controller
         return Inertia::render('Domains/Index', [
             'domains'        => $domains,
             'activeDomainId' => session('active_domain_id'),
-            'flash'          => ['success' => session('success'), 'error' => session('error')],
         ]);
     }
 
@@ -160,7 +165,7 @@ class DomainController extends Controller
             session(['active_domain_id' => $domain->id]);
             $this->syncTenantEnvFile($domain);
 
-            return redirect()->route('dashboard')->with('success', "Now managing: {$domain->name}");
+            return redirect()->route('dashboard', ['cms_locale' => $this->cmsLocaleForRedirect($request)])->with('success', "Now managing: {$domain->name}");
         }
 
         return redirect()->route('domains.select')->with('success', "Domain \"{$domain->name}\" added.");
@@ -229,7 +234,7 @@ class DomainController extends Controller
             $this->syncTenantEnvFile($domain->fresh());
         }
 
-        return redirect()->route('domains.index')->with('success', "Domain \"{$domain->name}\" updated.");
+        return redirect()->route('domains.index', ['cms_locale' => $this->cmsLocaleForRedirect($request)])->with('success', "Domain \"{$domain->name}\" updated.");
     }
 
     public function destroy(Domain $domain): RedirectResponse
@@ -245,7 +250,7 @@ class DomainController extends Controller
             $this->syncTenantEnvFile(null);
         }
 
-        return redirect()->route('domains.index')->with('success', "Domain \"{$name}\" removed.");
+        return redirect()->route('domains.index', ['cms_locale' => $this->cmsLocaleForRedirect($request)])->with('success', "Domain \"{$name}\" removed.");
     }
 
     /** Switch the active domain for the current admin session. */
@@ -269,7 +274,7 @@ class DomainController extends Controller
         $msg = "Now managing: {$domain->name}";
 
         return $redirect === 'dashboard'
-            ? redirect()->route('dashboard')->with('success', $msg)
+            ? redirect()->route('dashboard', ['cms_locale' => $this->cmsLocaleForRedirect($request)])->with('success', $msg)
             : back()->with('success', $msg);
     }
 
@@ -290,10 +295,7 @@ class DomainController extends Controller
         try {
             TenantArtisanDatabase::prepare($domain);
 
-            Artisan::call('migrate', [
-                '--database' => TenantArtisanDatabase::CONNECTION,
-                '--force'    => true,
-            ]);
+            Artisan::call('migrate', TenantArtisanDatabase::tenantMigrateOptions());
 
             $output = Artisan::output();
             $target = TenantArtisanDatabase::label($domain);
@@ -355,10 +357,7 @@ class DomainController extends Controller
         try {
             TenantArtisanDatabase::prepare($domain);
 
-            Artisan::call('migrate:rollback', [
-                '--database' => TenantArtisanDatabase::CONNECTION,
-                '--force'    => true,
-            ]);
+            Artisan::call('migrate:rollback', TenantArtisanDatabase::tenantMigrateOptions());
 
             $output  = trim(Artisan::output());
             $summary = $output ?: 'Last migration batch rolled back.';

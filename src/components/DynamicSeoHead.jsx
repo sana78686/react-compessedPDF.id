@@ -32,10 +32,12 @@ export default function DynamicSeoHead() {
 
   useEffect(() => {
     let isMounted = true
+    const pathMatch = location.pathname.match(/^\/([a-z]{2})(\/|$)/)
+    const locale = pathMatch && pathMatch[1] ? pathMatch[1] : 'en'
 
     async function loadSeoData() {
       try {
-        const data = await getHomeSeo()
+        const data = await getHomeSeo(locale)
         if (isMounted) {
           setSeoData({
             meta_title:       data.meta_title       || DEFAULT_SEO.meta_title,
@@ -58,7 +60,7 @@ export default function DynamicSeoHead() {
 
     loadSeoData()
     return () => { isMounted = false }
-  }, [])
+  }, [location.pathname])
 
   if (loading) return null
 

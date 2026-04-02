@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { supportedLangs, langOptions } from '../i18n/translations'
+import LangFlag from './LangFlag'
 import { ucWords } from '../utils/ucWords'
 import './Footer.css'
 
@@ -32,23 +33,14 @@ export default function Footer({ lang, pathname, t, footerPages = [] }) {
             <div className="footer-col">
               <h3 className="footer-col-title">{t('footerProduct')}</h3>
               <a href={`/${langPrefix}`}>{t('footerHome')}</a>
-              <a href={`/${langPrefix}/merge`}>{t('nav.merge')}</a>
-              <a href={`/${langPrefix}/split`}>{t('nav.split')}</a>
-              <a href={`/${langPrefix}`}>{t('nav.compress')}</a>
-              <a href={`/${langPrefix}/convert`}>{t('nav.convert')}</a>
               <a href={`/${langPrefix}/tools`}>{t('footerTools')}</a>
-              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
-            </div>
-            <div className="footer-col">
-              <h3 className="footer-col-title">{t('footerResources')}</h3>
-              <a href={`/${langPrefix}/tools`}>{t('footerTools')}</a>
-              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
             </div>
             <div className="footer-col">
               <h3 className="footer-col-title">{t('footerCompany')}</h3>
               {cmsFooterLinks.map((p) => (
                 <a key={p.id} href={`/${langPrefix}/page/${p.slug}`}>{ucWords(p.title)}</a>
               ))}
+              <a href={`/${langPrefix}/blog`}>{t('footerBlog')}</a>
               <a href={`/${langPrefix}/contact`}>{t('footerContact')}</a>
             </div>
             <div className="footer-col">
@@ -71,7 +63,9 @@ export default function Footer({ lang, pathname, t, footerPages = [] }) {
               aria-haspopup="listbox"
               aria-label="Select language"
             >
-              <span className="footer-lang-icon" aria-hidden>🌐</span>
+              <span className="footer-lang-icon" aria-hidden>
+                <LangFlag lang={langPrefix} width={20} />
+              </span>
               <span>{langOptions[langPrefix]?.label || t('footerLanguage')}</span>
               <span className="footer-lang-chevron" aria-hidden>▼</span>
             </button>
@@ -83,7 +77,10 @@ export default function Footer({ lang, pathname, t, footerPages = [] }) {
                       href={pathname ? pathname.replace(new RegExp(`^/${langPrefix}(/|$)`), `/${l}$1`) : `/${l}`}
                       className="footer-lang-item"
                     >
-                      {langOptions[l]?.label || l.toUpperCase()}
+                      <span className="footer-lang-item-flag" aria-hidden>
+                        <LangFlag lang={l} width={18} />
+                      </span>
+                      <span>{langOptions[l]?.label || l.toUpperCase()}</span>
                     </a>
                   </li>
                 ))}

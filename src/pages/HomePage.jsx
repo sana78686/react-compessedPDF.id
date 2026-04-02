@@ -59,6 +59,7 @@ function HomePage() {
   const [resultStats, setResultStats] = useState(null)
   const [resultFileName, setResultFileName] = useState('')
   const fileInputRef = useRef(null)
+  const dragDepthRef = useRef(0)
   const [faqOpenIndex, setFaqOpenIndex] = useState(null)
   const [showBelowFold, setShowBelowFold] = useState(false)
   const [landingFaq, setLandingFaq] = useState([])
@@ -74,14 +75,14 @@ function HomePage() {
   useEffect(() => {
     if (!isHomeLanding) return
     let cancelled = false
-    getHomePageContent()
+    getHomePageContent(lang)
       .then((res) => {
         if (cancelled) return
         const raw = typeof res.content === 'string' ? res.content.trim() : ''
-        setLandingHomeContent(raw || getDefaultLandingHomeHtml())
+        setLandingHomeContent(raw || getDefaultLandingHomeHtml(lang))
       })
       .catch(() => {
-        if (!cancelled) setLandingHomeContent(getDefaultLandingHomeHtml())
+        if (!cancelled) setLandingHomeContent(getDefaultLandingHomeHtml(lang))
       })
     return () => { cancelled = true }
   }, [isHomeLanding, lang])
@@ -91,8 +92,8 @@ function HomePage() {
     if (!showBelowFold) return
     let cancelled = false
     Promise.all([
-      getFaq().catch(() => ({ faq: [] })),
-      getHomeCards().catch(() => ({ cards: [] })),
+      getFaq(lang).catch(() => ({ faq: [] })),
+      getHomeCards(lang).catch(() => ({ cards: [] })),
     ])
       .then(([faqRes, cardsRes]) => {
         if (cancelled) return
@@ -100,7 +101,7 @@ function HomePage() {
         setLandingCards(Array.isArray(cardsRes.cards) ? cardsRes.cards : [])
       })
     return () => { cancelled = true }
-  }, [showBelowFold])
+  }, [showBelowFold, lang])
 
   /* Defer below-the-fold content to reduce TBT on mobile (Lighthouse Performance) */
   useEffect(() => {
@@ -139,6 +140,8 @@ function HomePage() {
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
+    e.stopPropagation()
+    dragDepthRef.current = 0
     setIsDragging(false)
     const dropped = Array.from(e.dataTransfer.files || []).filter((f) => f.type === 'application/pdf')
     if (dropped.length) {
@@ -150,12 +153,25 @@ function HomePage() {
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
+    e.stopPropagation()
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'
+  }, [])
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    dragDepthRef.current += 1
     setIsDragging(true)
   }, [])
 
   const handleDragLeave = useCallback((e) => {
     e.preventDefault()
-    setIsDragging(false)
+    e.stopPropagation()
+    dragDepthRef.current -= 1
+    if (dragDepthRef.current <= 0) {
+      dragDepthRef.current = 0
+      setIsDragging(false)
+    }
   }, [])
 
   const removeFile = (index) => {
@@ -388,6 +404,7 @@ function HomePage() {
                 className={`upload-zone ${isDragging ? 'upload-zone--dragging' : ''}`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
+                onDragEnter={handleDragEnter}
                 onDragLeave={handleDragLeave}
               >
                 <div className="upload-actions">
@@ -399,24 +416,21 @@ function HomePage() {
                   >
                     {t('selectPdf')}
                   </button>
-                  <div className="upload-icons">
-                    <button type="button" className="icon-btn" aria-label={t('fromCloud')} title={t('fromCloud')}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-                        <path d="M12 16v-8M9 11l3-3 3 3" />
-                      </svg>
-                    </button>
-                    <button type="button" className="icon-btn" aria-label={t('otherSources')} title={t('otherSources')}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <rect x="3" y="3" width="7" height="7" rx="1" />
-                        <rect x="14" y="3" width="7" height="7" rx="1" />
-                        <rect x="3" y="14" width="7" height="7" rx="1" />
-                        <rect x="14" y="14" width="7" height="7" rx="1" />
-                      </svg>
-                    </button>
-                  </div>
                 </div>
-                <p className="upload-hint">{t('orDrop')}</p>
+                <p
+                  className="upload-hint"
+                  role="button"
+                  tabIndex={0}
+                  onClick={triggerFileInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      triggerFileInput()
+                    }
+                  }}
+                >
+                  {t('orDrop')}
+                </p>
               </div>
             </section>
 
