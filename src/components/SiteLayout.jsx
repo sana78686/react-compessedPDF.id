@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect, lazy, Suspense } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
-import { supportedLangs, langOptions, defaultLang } from '../i18n/translations'
+import { supportedLangs, langOptions, defaultLang, writeUserLocalePreference } from '../i18n/translations'
 import { langShortLabel } from '../i18n/langMeta'
 import { getPages, getLegalNav, getFaq } from '../api/cms'
 import BrandLogo from './BrandLogo'
+import { COMPRESS_PDF_EN } from '../constants/brand'
 import LangFlag from './LangFlag'
 import '../pages/HomePage.css'
 
@@ -97,7 +98,7 @@ export default function SiteLayout({ children }) {
     <div className="home-page">
       <header className="header">
         <div className="header-inner header-inner--minimal">
-          <BrandLogo href={`/${lang}`} ariaLabel={t('nav.home')} text={t('logoMark')} />
+          <BrandLogo href={`/${lang}`} ariaLabel={t('nav.home')} text={COMPRESS_PDF_EN} />
           <div className="header-actions">
             <div className="lang-dropdown" ref={langDropdownRef}>
               <button
@@ -121,7 +122,10 @@ export default function SiteLayout({ children }) {
                       <a
                         href={pathname.replace(new RegExp(`^/${lang}(/|$)`), `/${l}$1`)}
                         className={`lang-dropdown-item ${lang === l ? 'lang-dropdown-item--active' : ''}`}
-                        onClick={() => setLangDropdownOpen(false)}
+                        onClick={() => {
+                          writeUserLocalePreference(l)
+                          setLangDropdownOpen(false)
+                        }}
                       >
                         <span className="lang-dropdown-item-flag" aria-hidden>
                           <LangFlag lang={l} width={22} />

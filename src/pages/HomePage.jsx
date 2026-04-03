@@ -6,8 +6,10 @@ import { getFaq, getHomeCards, getBlogs, getHomePageContent } from '../api/cms'
 import './HomePage.css'
 import './CmsPage.css'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { COMPRESS_PDF_EN } from '../constants/brand'
 
 const LandingBelowFold = lazy(() => import('./LandingBelowFold'))
+const LandingFaqSection = lazy(() => import('./LandingFaqSection'))
 
 // Workaround for servers that serve .mjs as application/octet-stream: fetch worker as text
 // and create a blob URL so the worker runs with correct MIME (works on live without Nginx fix).
@@ -501,8 +503,9 @@ function HomePage() {
         {!isCompressPage && (
           <>
             {/* SEO: Upload section first – main CTA above the fold */}
-            <section id="compress-tool" className="landing-upload-section landing-upload-section--first" aria-labelledby="landing-select-heading">
-              <h1 id="landing-select-heading" className="landing-upload-heading">{t('landing.readySubtitle')}</h1>
+            <section id="compress-tool" className="landing-upload-section landing-upload-section--first" aria-labelledby="landing-upload-h1">
+              <h1 id="landing-upload-h1" className="landing-upload-h1">{COMPRESS_PDF_EN}</h1>
+              <p id="landing-select-heading" className="landing-upload-heading">{t('landing.readySubtitle')}</p>
               <div
                 className={`upload-zone ${isDragging ? 'upload-zone--dragging' : ''}`}
                 onDrop={handleDrop}
@@ -551,13 +554,7 @@ function HomePage() {
 
             {showBelowFold && (
               <Suspense fallback={null}>
-                <LandingBelowFold
-                  t={t}
-                  faqItems={faqItems}
-                  faqOpenIndex={faqOpenIndex}
-                  setFaqOpenIndex={setFaqOpenIndex}
-                  cards={landingCards}
-                />
+                <LandingBelowFold t={t} cards={landingCards} />
               </Suspense>
             )}
           </>
@@ -829,6 +826,17 @@ function HomePage() {
               {t('viewAllPosts')} →
             </Link>
           </section>
+        )}
+
+        {showBelowFold && !isCompressPage && faqItems.length > 0 && (
+          <Suspense fallback={null}>
+            <LandingFaqSection
+              t={t}
+              faqItems={faqItems}
+              faqOpenIndex={faqOpenIndex}
+              setFaqOpenIndex={setFaqOpenIndex}
+            />
+          </Suspense>
         )}
       </main>
     </div>

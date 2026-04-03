@@ -223,11 +223,11 @@ export const translations = {
   },
   id: idTranslations,
   ms: {
-    logoMark: 'Mampatkan PDF',
+    logoMark: 'Compress PDF',
     nav: {
       merge: 'GABUNG PDF',
       split: 'PECAH PDF',
-      compress: 'MAMPATKAN PDF',
+      compress: 'COMPRESS PDF',
       convert: 'TUKAR PDF',
       allTools: 'SEMUA ALAT PDF',
       login: 'Log masuk',
@@ -235,7 +235,7 @@ export const translations = {
       signUp: 'Daftar',
       home: 'Laman utama',
     },
-    title: 'Mampatkan fail PDF',
+    title: 'Compress PDF files',
     subtitle: 'Kurangkan saiz fail dengan kualiti PDF yang baik.',
     selectPdf: 'Pilih fail PDF',
     orDrop: 'atau lepas PDF di sini',
@@ -264,11 +264,11 @@ export const translations = {
     },
   },
   es: {
-    logoMark: 'Comprimir PDF',
+    logoMark: 'Compress PDF',
     nav: {
       merge: 'UNIR PDF',
       split: 'DIVIDIR PDF',
-      compress: 'COMPRIMIR PDF',
+      compress: 'COMPRESS PDF',
       convert: 'CONVERTIR PDF',
       allTools: 'TODAS LAS HERRAMIENTAS PDF',
       login: 'Iniciar sesión',
@@ -276,7 +276,7 @@ export const translations = {
       signUp: 'Registrarse',
       home: 'Inicio',
     },
-    title: 'Comprimir archivos PDF',
+    title: 'Compress PDF files',
     subtitle: 'Reduce el tamaño del archivo optimizando la calidad del PDF.',
     selectPdf: 'Seleccionar archivos PDF',
     orDrop: 'o suelta los PDF aquí',
@@ -305,11 +305,11 @@ export const translations = {
     },
   },
   fr: {
-    logoMark: 'Compresser PDF',
+    logoMark: 'Compress PDF',
     nav: {
       merge: 'FUSIONNER PDF',
       split: 'DIVISER PDF',
-      compress: 'COMPRESSER PDF',
+      compress: 'COMPRESS PDF',
       convert: 'CONVERTIR PDF',
       allTools: 'TOUT LES OUTILS PDF',
       login: 'Connexion',
@@ -317,7 +317,7 @@ export const translations = {
       signUp: 'S’inscrire',
       home: 'Accueil',
     },
-    title: 'Compresser des fichiers PDF',
+    title: 'Compress PDF files',
     subtitle: 'Réduisez la taille du fichier tout en optimisant la qualité PDF.',
     selectPdf: 'Sélectionner des fichiers PDF',
     orDrop: 'ou déposez les PDF ici',
@@ -346,11 +346,11 @@ export const translations = {
     },
   },
   ar: {
-    logoMark: 'ضغط PDF',
+    logoMark: 'Compress PDF',
     nav: {
       merge: 'دمج PDF',
       split: 'تقسيم PDF',
-      compress: 'ضغط PDF',
+      compress: 'COMPRESS PDF',
       convert: 'تحويل PDF',
       allTools: 'كل أدوات PDF',
       login: 'تسجيل الدخول',
@@ -358,7 +358,7 @@ export const translations = {
       signUp: 'إنشاء حساب',
       home: 'الرئيسية',
     },
-    title: 'ضغط ملفات PDF',
+    title: 'Compress PDF files',
     subtitle: 'قلل حجم الملف مع الحفاظ على جودة PDF.',
     selectPdf: 'اختر ملفات PDF',
     orDrop: 'أو أسقط ملفات PDF هنا',
@@ -387,11 +387,11 @@ export const translations = {
     },
   },
   ru: {
-    logoMark: 'Сжать PDF',
+    logoMark: 'Compress PDF',
     nav: {
       merge: 'ОБЪЕДИНИТЬ PDF',
       split: 'РАЗДЕЛИТЬ PDF',
-      compress: 'СЖАТЬ PDF',
+      compress: 'COMPRESS PDF',
       convert: 'КОНВЕРТИРОВАТЬ PDF',
       allTools: 'ВСЕ ИНСТРУМЕНТЫ PDF',
       login: 'Войти',
@@ -399,7 +399,7 @@ export const translations = {
       signUp: 'Регистрация',
       home: 'Главная',
     },
-    title: 'Сжать файлы PDF',
+    title: 'Compress PDF files',
     subtitle: 'Уменьшите размер файла, сохраняя качество PDF.',
     selectPdf: 'Выберите файлы PDF',
     orDrop: 'или перетащите PDF сюда',
@@ -429,7 +429,7 @@ export const translations = {
   },
 }
 
-/** App default when geo/timezone/browser do not pick another locale (compresspdf.id → Indonesia). */
+/** Public site default until the visitor picks another language (stored in localStorage). */
 export const defaultLang = 'id'
 
 export const supportedLangs = ['id', 'en', 'ms', 'es', 'fr', 'ar', 'ru']
@@ -437,8 +437,34 @@ export const supportedLangs = ['id', 'en', 'ms', 'es', 'fr', 'ar', 'ru']
 /** Strings always resolve from English if missing in the active locale (avoids recursion when defaultLang is id). */
 const TRANSLATION_FALLBACK = 'en'
 
+/** User-chosen UI language (persists across visits; survives refresh). */
+const LOCALE_STORAGE_KEY = 'compresspdf_user_locale'
+
+/** Legacy session hint from old geo detection — migrated once into localStorage. */
 const LOCALE_HINT_KEY = 'compresspdf_locale_hint'
 const LOCALE_HINT_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+export function readUserLocalePreference() {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(LOCALE_STORAGE_KEY)
+    if (!raw) return null
+    const lang = String(raw).trim().toLowerCase()
+    return supportedLangs.includes(lang) ? lang : null
+  } catch {
+    return null
+  }
+}
+
+export function writeUserLocalePreference(lang) {
+  if (typeof localStorage === 'undefined') return
+  if (!supportedLangs.includes(lang)) return
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, lang)
+  } catch {
+    /* private mode / quota */
+  }
+}
 
 export function readLocaleHintCache() {
   if (typeof sessionStorage === 'undefined') return null
@@ -505,14 +531,26 @@ export function getPreferredLangFromBrowser() {
 }
 
 /**
- * Sync preferred lang: session hint (from geo) → browser → default (Indonesia).
+ * Preferred lang for redirects / invalid URL recovery:
+ * 1) explicit user choice (localStorage)
+ * 2) one-time migration from legacy session geo hint
+ * 3) default Indonesian (no IP lookup — fast first paint)
  */
 export function getPreferredLang() {
-  if (typeof window !== 'undefined') {
-    const cached = readLocaleHintCache()
-    if (cached) return cached
+  if (typeof window === 'undefined') return defaultLang
+  const stored = readUserLocalePreference()
+  if (stored) return stored
+  const legacy = readLocaleHintCache()
+  if (legacy) {
+    writeUserLocalePreference(legacy)
+    try {
+      sessionStorage.removeItem(LOCALE_HINT_KEY)
+    } catch {
+      /* ignore */
+    }
+    return legacy
   }
-  return getPreferredLangFromBrowser()
+  return defaultLang
 }
 
 export function getTranslation(lang, keyPath) {

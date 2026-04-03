@@ -536,7 +536,7 @@
 
 .landing-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
   text-align: left;
 }
@@ -719,6 +719,49 @@
   -webkit-hyphens: auto;
 }
 
+/* Rich-text FAQ answers (CMS Quill HTML) */
+.landing-faq-answer__inner.cms-page-content {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding-top: 0.25rem;
+  text-align: left;
+}
+
+.landing-faq-answer__inner.cms-page-content :first-child {
+  margin-top: 0;
+}
+
+.landing-faq-answer__inner.cms-page-content :last-child {
+  margin-bottom: 0;
+}
+
+.landing-faq-answer__inner.cms-page-content p {
+  margin: 0.5em 0;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.landing-faq-answer__inner.cms-page-content p:first-child {
+  margin-top: 0;
+}
+
+.landing-faq-answer__inner.cms-page-content ul,
+.landing-faq-answer__inner.cms-page-content ol {
+  margin: 0.5em 0;
+  padding-left: 1.35em;
+}
+
+.landing-faq-answer__inner.cms-page-content a {
+  color: var(--accent-red, #e03d3d);
+  text-decoration: none;
+}
+
+.landing-faq-answer__inner.cms-page-content a:hover {
+  text-decoration: underline;
+}
+
 /* Upload section – at start for SEO (main CTA above the fold) */
 .landing-upload-section {
   padding: 2rem 0 1rem;
@@ -728,6 +771,18 @@
 .landing-upload-section--first {
   padding-top: 1.5rem;
   padding-bottom: 2.5rem;
+}
+
+/* Primary page title above upload CTA (localized “Compress PDF” / equivalent) */
+.landing-upload-h1 {
+  font-size: clamp(1.85rem, 5.5vw, 2.65rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.65rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-align: center;
+  padding-inline: max(0px, env(safe-area-inset-left, 0px)) max(0px, env(safe-area-inset-right, 0px));
 }
 
 /* CMS “Home page” rich text (public API /home-content) */
@@ -1820,6 +1875,10 @@
 
   .landing-upload-heading {
     font-size: 1.2rem;
+  }
+
+  .landing-upload-h1 {
+    font-size: 1.55rem;
   }
 
   .landing-upload-section--first {

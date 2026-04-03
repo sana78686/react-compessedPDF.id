@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import { defaultLang } from '../i18n/translations'
 import { SeoHead } from '../components/SeoHead'
+import { COMPRESS_PDF_EN } from '../constants/brand'
 import './HomePage.css'
 import './AllToolsPage.css'
 
@@ -64,7 +65,9 @@ function AllToolsPage() {
               <span className="tool-card-icon" aria-hidden>
                 {tool.available && tool.slug === '' ? '📦' : '📄'}
               </span>
-              <span className="tool-card-label">{t(tool.labelKey)}</span>
+              <span className="tool-card-label">
+                {tool.slug === '' ? COMPRESS_PDF_EN : t(tool.labelKey)}
+              </span>
               {tool.available && (
                 <span className="tool-card-badge" aria-hidden>✓</span>
               )}

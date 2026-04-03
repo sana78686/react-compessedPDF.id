@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { COMPRESS_PDF_EN } from '../constants/brand'
 
 const DEFAULT_OG_IMAGE = '/logos/compresspdf.png'
-const SITE_NAME = 'Compress PDF'
+const SITE_NAME = COMPRESS_PDF_EN
 
 /**
  * Sets document title and meta tags for SEO (search + social).

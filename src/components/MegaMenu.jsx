@@ -1,4 +1,5 @@
 import { MEGA_MENU_CATEGORIES } from '../config/toolsMegaMenu'
+import { COMPRESS_PDF_EN } from '../constants/brand'
 import { ucWords } from '../utils/ucWords'
 import { getMegaMenuIcon } from './MegaMenuIcons'
 import './MegaMenu.css'
@@ -33,7 +34,9 @@ export default function MegaMenu({ lang, t, isOpen, onClose }) {
                     >
                       {getMegaMenuIcon(tool.slug)}
                     </span>
-                    <span className="mega-menu-tool-label">{ucWords(t(tool.labelKey))}</span>
+                    <span className="mega-menu-tool-label">
+                      {tool.slug === '' ? COMPRESS_PDF_EN : ucWords(t(tool.labelKey))}
+                    </span>
                   </a>
                 </li>
               ))}

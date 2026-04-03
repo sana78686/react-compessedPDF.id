@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { supportedLangs, langOptions, defaultLang } from '../i18n/translations'
+import { supportedLangs, langOptions, defaultLang, writeUserLocalePreference } from '../i18n/translations'
 import LangFlag from './LangFlag'
 import { ucWords } from '../utils/ucWords'
 import './Footer.css'
@@ -107,6 +107,7 @@ export default function Footer({
                     <a
                       href={pathname ? pathname.replace(new RegExp(`^/${langPrefix}(/|$)`), `/${l}$1`) : `/${l}`}
                       className="footer-lang-item"
+                      onClick={() => writeUserLocalePreference(l)}
                     >
                       <span className="footer-lang-item-flag" aria-hidden>
                         <LangFlag lang={l} width={18} />

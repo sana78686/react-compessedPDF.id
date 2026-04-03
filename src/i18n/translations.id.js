@@ -2,11 +2,11 @@
  * Bahasa Indonesia — primary locale for compresspdf.id
  */
 export default {
-  logoMark: 'Kompres PDF',
+  logoMark: 'Compress PDF',
   nav: {
     merge: 'GABUNG PDF',
     split: 'PISAH PDF',
-    compress: 'KOMPRES PDF',
+    compress: 'COMPRESS PDF',
     convert: 'KONVERSI PDF',
     allTools: 'SEMUA ALAT PDF',
     login: 'Masuk',
@@ -14,7 +14,7 @@ export default {
     signUp: 'Daftar',
     home: 'Beranda',
   },
-  title: 'Kompres file PDF',
+  title: 'Compress PDF files',
   subtitle: 'Kurangi ukuran file sambil menjaga kualitas PDF sebaik mungkin.',
   selectPdf: 'Pilih file PDF',
   orDrop: 'atau letakkan PDF di sini',
@@ -95,9 +95,9 @@ export default {
   downloadAll: 'Unduh semua',
   otherTools: 'Alat lain',
   landing: {
-    heroTitle: 'Kompres PDF online',
+    heroTitle: 'Compress PDF files online',
     heroSubtitle: 'Kurangi ukuran file dengan kualitas bagus. Gratis, cepat, dan file Anda tetap privat.',
-    ctaCompress: 'Kompres PDF sekarang',
+    ctaCompress: 'Compress PDF now',
     featuresTitle: 'Mengapa memilih kompresor PDF kami?',
     feature1Title: 'Kompresi cepat',
     feature1Desc: 'Kurangi ukuran PDF dalam hitungan detik dengan pengaturan optimal.',
@@ -106,7 +106,7 @@ export default {
     feature3Title: 'Privasi dulu',
     feature3Desc: 'File diproses di peramban Anda — kami tidak menyimpannya.',
     feature4Title: 'Gratis',
-    feature4Desc: 'Tanpa daftar. Kompres PDF sebanyak yang Anda butuhkan.',
+    feature4Desc: 'Tanpa daftar. Compress PDF sebanyak yang Anda butuhkan.',
     howTitle: 'Cara kerja',
     howStep1: 'Unggah',
     howStep1Desc: 'Pilih satu atau lebih file PDF dari perangkat Anda.',
@@ -132,7 +132,7 @@ export default {
     frequentlyUsed: 'Sering digunakan',
     mergePdf: 'Gabung PDF',
     splitPdf: 'Pisah PDF',
-    compressPdf: 'Kompres PDF',
+    compressPdf: 'Compress PDF',
     editPdf: 'Edit PDF',
     signPdf: 'Tanda tangan PDF',
     convertPdf: 'Konverter PDF',
