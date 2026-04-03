@@ -730,6 +730,15 @@
   padding-bottom: 2.5rem;
 }
 
+/* CMS “Home page” rich text (public API /home-content) */
+.landing-cms-body-section {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--content-padding-x) 2rem;
+  box-sizing: border-box;
+}
+
 .landing-upload-heading {
   font-size: clamp(1.25rem, 4vw, 1.65rem);
   font-weight: 700;

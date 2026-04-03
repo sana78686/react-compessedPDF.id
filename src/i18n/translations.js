@@ -129,6 +129,7 @@ export const translations = {
       faq4A: 'You control DPI and image quality. Lower values mean smaller files and slightly lower visual quality.',
       readyTitle: 'Ready to compress?',
       readySubtitle: 'Select your PDF or drag and drop it below.',
+      cmsSectionAria: 'Site introduction',
     },
     tools: {
       pageTitle: 'All PDF Tools',
@@ -238,6 +239,7 @@ export const translations = {
     orDrop: 'atau lepas PDF di sini',
     landing: {
       readySubtitle: 'Pilih PDF anda atau seret dan lepas di bawah.',
+      cmsSectionAria: 'Site introduction',
       howTitle: 'Cara ia berfungsi',
       howStep1: 'Muat naik',
       howStep1Desc: 'Pilih satu atau lebih fail PDF daripada peranti anda.',
@@ -278,6 +280,7 @@ export const translations = {
     orDrop: 'o suelta los PDF aquí',
     landing: {
       readySubtitle: 'Selecciona tu PDF o arrástralo y suéltalo abajo.',
+      cmsSectionAria: 'Site introduction',
       howTitle: 'Cómo funciona',
       howStep1: 'Subir',
       howStep1Desc: 'Selecciona uno o más archivos PDF desde tu dispositivo.',
@@ -318,6 +321,7 @@ export const translations = {
     orDrop: 'ou déposez les PDF ici',
     landing: {
       readySubtitle: 'Sélectionnez votre PDF ou glissez-déposez-le ci-dessous.',
+      cmsSectionAria: 'Site introduction',
       howTitle: 'Comment ça marche',
       howStep1: 'Téléverser',
       howStep1Desc: 'Choisissez un ou plusieurs fichiers PDF sur votre appareil.',
@@ -358,6 +362,7 @@ export const translations = {
     orDrop: 'أو أسقط ملفات PDF هنا',
     landing: {
       readySubtitle: 'اختر ملف PDF أو اسحبه وأفلته أدناه.',
+      cmsSectionAria: 'Site introduction',
       howTitle: 'كيف يعمل',
       howStep1: 'رفع',
       howStep1Desc: 'اختر ملف PDF واحدًا أو أكثر من جهازك.',
@@ -398,6 +403,7 @@ export const translations = {
     orDrop: 'или перетащите PDF сюда',
     landing: {
       readySubtitle: 'Выберите PDF или перетащите его ниже.',
+      cmsSectionAria: 'Site introduction',
       howTitle: 'Как это работает',
       howStep1: 'Загрузка',
       howStep1Desc: 'Выберите один или несколько PDF с устройства.',

@@ -25,7 +25,7 @@ export default function LegalContentPage() {
       .then(setData)
       .catch(() => setError('Page not found.'))
       .finally(() => setLoading(false))
-  }, [slug])
+  }, [slug, lang])
 
   const langPrefix = supportedLangs.includes(lang) ? lang : getPreferredLang()
 

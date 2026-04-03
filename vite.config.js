@@ -62,15 +62,28 @@ function cmsSeoInjectPlugin(viteEnv) {
             ).replace(/\/$/, '')
             const siteDomain = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
             const useDomainPath = viteEnv.VITE_API_DOMAIN_PATH !== 'false'
-            const homeUrl = (useDomainPath
-              ? `${apiBase}/${siteDomain}/api/public/home-content`
-              : `${apiBase}/api/public/home-content`) + '?locale=en'
-            const headers = { Accept: 'application/json' }
-            if (!useDomainPath) {
-              headers['X-Domain'] = siteDomain
+            const homeQuery = '?locale=en'
+            const tryUrls = useDomainPath
+              ? [
+                  { url: `${apiBase}/${siteDomain}/api/public/home-content${homeQuery}`, headers: { Accept: 'application/json' } },
+                  { url: `${apiBase}/api/public/home-content${homeQuery}`, headers: { Accept: 'application/json', 'X-Domain': siteDomain } },
+                ]
+              : [
+                  { url: `${apiBase}/api/public/home-content${homeQuery}`, headers: { Accept: 'application/json', 'X-Domain': siteDomain } },
+                ]
+            let res = null
+            for (let u = 0; u < tryUrls.length; u++) {
+              const { url, headers } = tryUrls[u]
+              res = await fetch(url, { headers })
+              if (res.ok) break
+              const retry =
+                useDomainPath &&
+                u === 0 &&
+                tryUrls.length > 1 &&
+                (res.status === 404 || res.status === 403)
+              if (!retry) break
             }
-            const res = await fetch(homeUrl, { headers })
-            if (!res.ok) throw new Error(`HTTP ${res.status}`)
+            if (!res || !res.ok) throw new Error(`HTTP ${res?.status ?? '?'}`)
             data = await res.json()
             if (!isDevServer) buildCache = data  // cache only for build pass
           }

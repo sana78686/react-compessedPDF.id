@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Blog;
 use App\Support\ContentLocales;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,15 @@ class BlogController extends Controller
     private function cmsLocale(Request $request): string
     {
         return ContentLocales::normalize($request->session()->get('cms_locale'));
+    }
+
+    /**
+     * Accept either a resolved Blog (implicit/custom binding) or raw id from the route.
+     * Avoids TypeError when binding passes a string before the tenant model is resolved.
+     */
+    private function resolveBlog(mixed $blog): Blog
+    {
+        return $blog instanceof Blog ? $blog : Blog::query()->findOrFail((int) $blog);
     }
 
     private function blogToArray(Blog $blog): array
@@ -90,7 +100,7 @@ class BlogController extends Controller
         ]);
 
         $visibility = $request->input('visibility', Blog::VISIBILITY_DRAFT);
-        $blog = Blog::create([
+        $attrs = [
             'locale' => $loc,
             'title' => $request->title,
             'slug' => $request->slug ?: Str::slug($request->title),
@@ -107,7 +117,20 @@ class BlogController extends Controller
             'og_title' => $request->og_title,
             'og_description' => $request->og_description,
             'og_image' => $request->og_image,
-        ]);
+        ];
+        try {
+            $blog = Blog::create($attrs);
+        } catch (QueryException $e) {
+            // Tenant DBs may still have blogs.user_id → tenant.users until migration
+            // 2026_04_03_100000_drop_blogs_user_id_foreign_references_registry runs.
+            $sqlState = (int) ($e->errorInfo[1] ?? 0);
+            if ($sqlState === 1452 && str_contains($e->getMessage(), 'user_id')) {
+                $attrs['user_id'] = null;
+                $blog = Blog::create($attrs);
+            } else {
+                throw $e;
+            }
+        }
 
         if (request()->is('api/*')) {
             return response()->json(['message' => 'Blog created.', 'blog' => $this->blogToArray($blog)], 201);
@@ -115,8 +138,9 @@ class BlogController extends Controller
         return redirect()->route('blogs.index')->with('success', 'created');
     }
 
-    public function edit(Blog $blog): Response|JsonResponse
+    public function edit(mixed $blog): Response|JsonResponse
     {
+        $blog = $this->resolveBlog($blog);
         $payload = ['blogId' => $blog->id, 'blog' => $this->blogToArray($blog)];
         if (request()->is('api/*')) {
             return response()->json($payload);
@@ -124,8 +148,9 @@ class BlogController extends Controller
         return Inertia::render('Blogs/Edit', $payload);
     }
 
-    public function update(Request $request, Blog $blog): RedirectResponse|JsonResponse
+    public function update(Request $request, mixed $blog): RedirectResponse|JsonResponse
     {
+        $blog = $this->resolveBlog($blog);
         $loc = $blog->locale ?? $this->cmsLocale($request);
         $request->validate([
             'title' => 'required|string|max:255',
@@ -167,8 +192,9 @@ class BlogController extends Controller
         return redirect()->route('blogs.index')->with('success', 'updated');
     }
 
-    public function destroy(Blog $blog): RedirectResponse|JsonResponse
+    public function destroy(mixed $blog): RedirectResponse|JsonResponse
     {
+        $blog = $this->resolveBlog($blog);
         $blog->delete();
         if (request()->is('api/*')) {
             return response()->json(['message' => 'Blog deleted.']);
@@ -177,8 +203,9 @@ class BlogController extends Controller
     }
 
     /** Quick status update from the blogs list (PATCH /api/blogs/{id}/status). */
-    public function updateStatus(Request $request, Blog $blog): JsonResponse
+    public function updateStatus(Request $request, mixed $blog): JsonResponse
     {
+        $blog = $this->resolveBlog($blog);
         $request->validate([
             'visibility' => ['required', 'string', \Illuminate\Validation\Rule::in(['draft', 'visible', 'disabled'])],
         ]);
@@ -193,8 +220,9 @@ class BlogController extends Controller
     }
 
     /** @deprecated Keep for backward compat */
-    public function togglePublish(Blog $blog): JsonResponse
+    public function togglePublish(mixed $blog): JsonResponse
     {
+        $blog = $this->resolveBlog($blog);
         $blog->visibility   = $blog->visibility === Blog::VISIBILITY_VISIBLE ? Blog::VISIBILITY_DRAFT : Blog::VISIBILITY_VISIBLE;
         $blog->is_published = ($blog->visibility === Blog::VISIBILITY_VISIBLE);
         $blog->save();
@@ -206,7 +234,7 @@ class BlogController extends Controller
     }
 
     /** @deprecated Alias for updateStatus */
-    public function updateVisibility(Request $request, Blog $blog): JsonResponse
+    public function updateVisibility(Request $request, mixed $blog): JsonResponse
     {
         return $this->updateStatus($request, $blog);
     }

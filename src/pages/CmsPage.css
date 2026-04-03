@@ -376,3 +376,46 @@
     min-height: 200px;
   }
 }
+
+/* Quill alignment classes from CMS (home + legal pages) */
+.cms-page-content .ql-align-left,
+.cms-home-cms-body .ql-align-left {
+  text-align: left;
+}
+
+.cms-page-content .ql-align-center,
+.cms-home-cms-body .ql-align-center {
+  text-align: center;
+}
+
+.cms-page-content .ql-align-right,
+.cms-home-cms-body .ql-align-right {
+  text-align: right;
+}
+
+.cms-page-content .ql-align-justify,
+.cms-home-cms-body .ql-align-justify {
+  text-align: justify;
+}
+
+.cms-home-cms-body {
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+}
+
+.cms-home-cms-body h1,
+.cms-home-cms-body h2,
+.cms-home-cms-body h3 {
+  text-align: left;
+}
+
+.cms-page-content blockquote.content-card,
+.cms-home-cms-body blockquote.content-card {
+  border: 1px solid var(--border-light, #e8e8e8);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1.25rem 0;
+  background: #fafafa;
+  border-left: 4px solid var(--accent-red, #e03d3d);
+}

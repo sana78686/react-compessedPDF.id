@@ -1,6 +1,10 @@
 import { CMS_API_BASE, CMS_SITE_DOMAIN, normalizeSiteDomain } from '../config/cms.js'
 
-/** false = /api/public/* + X-Domain (use if WAF returns 403 on /{domain}/api/public/*). */
+/**
+ * false = always use /api/public/* + X-Domain (recommended on many nginx/Plesk setups).
+ * true (default) = try /{domain}/api/public/* first, then fall back to legacy on 404/403
+ * (some servers treat the first segment like `compresspdf.id` as a static file and never hit Laravel).
+ */
 const useDomainInApiPath = import.meta.env.VITE_API_DOMAIN_PATH !== 'false'
 
 /** Current site host for public API path (browser) or env fallback (SSR/build tools). */
@@ -16,40 +20,65 @@ function resolveSiteDomainForApi() {
   return CMS_SITE_DOMAIN
 }
 
-/** Path: /{host}/api/public (default) or /api/public (legacy when VITE_API_DOMAIN_PATH=false). */
-function publicApiRoot() {
-  if (!useDomainInApiPath) {
-    return '/api/public'
-  }
-  const host = resolveSiteDomainForApi()
-  return `/${host}/api/public`
-}
-
 function withLocaleQuery(path, locale) {
   if (!locale) return path
   const joiner = path.includes('?') ? '&' : '?'
   return `${path}${joiner}locale=${encodeURIComponent(locale)}`
 }
 
+/**
+ * @param {string} path - e.g. `/legal/terms`
+ * @param {Record<string, unknown>} options
+ */
 async function request(path, options = {}) {
   const { locale, ...fetchOptions } = options
-  const url = `${CMS_API_BASE}${publicApiRoot()}${withLocaleQuery(path, locale)}`
-  const headers = {
-    Accept: 'application/json',
-    ...fetchOptions.headers,
+  const host = resolveSiteDomainForApi()
+
+  /** @type {{ root: string, headers: Record<string, string> }[]} */
+  const attempts = []
+  if (useDomainInApiPath) {
+    attempts.push({
+      root: `/${host}/api/public`,
+      headers: { Accept: 'application/json', ...(fetchOptions.headers || {}) },
+    })
+    attempts.push({
+      root: '/api/public',
+      headers: {
+        Accept: 'application/json',
+        'X-Domain': host,
+        ...(fetchOptions.headers || {}),
+      },
+    })
+  } else {
+    attempts.push({
+      root: '/api/public',
+      headers: {
+        Accept: 'application/json',
+        'X-Domain': host,
+        ...(fetchOptions.headers || {}),
+      },
+    })
   }
-  if (!useDomainInApiPath) {
-    headers['X-Domain'] = resolveSiteDomainForApi()
-  }
-  const res = await fetch(url, {
-    ...fetchOptions,
-    headers,
-  })
-  if (!res.ok) {
+
+  for (let i = 0; i < attempts.length; i++) {
+    const { root, headers } = attempts[i]
+    const url = `${CMS_API_BASE}${root}${withLocaleQuery(path, locale)}`
+    const res = await fetch(url, { ...fetchOptions, headers })
+    if (res.ok) {
+      return res.json()
+    }
+    const retry =
+      useDomainInApiPath &&
+      i === 0 &&
+      attempts.length > 1 &&
+      (res.status === 404 || res.status === 403)
+    if (retry) {
+      continue
+    }
     const data = await res.json().catch(() => ({}))
     throw new Error(data.message || `HTTP ${res.status}`)
   }
-  return res.json()
+  throw new Error('Public API request failed')
 }
 
 /** @param {string} [locale] - BCP-style code: id, en, ms, es, fr, ar, ru */

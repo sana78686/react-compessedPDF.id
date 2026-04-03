@@ -2,8 +2,9 @@ import { useState, useCallback, useRef, useEffect, lazy, Suspense, startTransiti
 import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
 import { useTranslation } from '../i18n/useTranslation'
 import { defaultLang } from '../i18n/translations'
-import { getFaq, getHomeCards, getBlogs } from '../api/cms'
+import { getFaq, getHomeCards, getBlogs, getHomePageContent } from '../api/cms'
 import './HomePage.css'
+import './CmsPage.css'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 
 const LandingBelowFold = lazy(() => import('./LandingBelowFold'))
@@ -30,6 +31,12 @@ const STEP_SETTINGS = 2
 const STEP_RESULT = 3
 
 const MAX_PDF_FILES = 10
+
+function cmsHtmlHasVisibleText(html) {
+  if (!html || typeof html !== 'string') return false
+  const text = html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return text.length > 0
+}
 
 /** DPI and image quality must both be set to valid positive numbers before compress is enabled. */
 function parseCompressionSettings(settings) {
@@ -84,6 +91,8 @@ function HomePage() {
   const [landingCards, setLandingCards] = useState([])
   /** Blog links under landing + compress tool (replaces removed “Other tools”). */
   const [teaserBlogs, setTeaserBlogs] = useState([])
+  /** CMS “Home page” rich text (locale-specific), from public /home-content */
+  const [cmsHomeHtml, setCmsHomeHtml] = useState('')
 
   const parsedSettings = useMemo(() => parseCompressionSettings(settings), [settings.dpi, settings.imageQuality])
   const canCompress = parsedSettings.valid && files.length > 0
@@ -106,6 +115,22 @@ function HomePage() {
       })
     return () => { cancelled = true }
   }, [isHomeLanding, isCompressPage, lang])
+
+  useEffect(() => {
+    if (!isHomeLanding) return undefined
+    let cancelled = false
+    getHomePageContent(lang)
+      .then((res) => {
+        if (cancelled) return
+        setCmsHomeHtml(typeof res?.content === 'string' ? res.content : '')
+      })
+      .catch(() => {
+        if (!cancelled) setCmsHomeHtml('')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isHomeLanding, lang])
 
   /* Fetch FAQ and cards when below-the-fold is shown */
   useEffect(() => {
@@ -511,6 +536,18 @@ function HomePage() {
                 </p>
               </div>
             </section>
+
+            {cmsHtmlHasVisibleText(cmsHomeHtml) && (
+              <section
+                className="landing-cms-body-section"
+                aria-label={t('landing.cmsSectionAria')}
+              >
+                <div
+                  className="cms-home-cms-body cms-page-content"
+                  dangerouslySetInnerHTML={{ __html: cmsHomeHtml }}
+                />
+              </section>
+            )}
 
             {showBelowFold && (
               <Suspense fallback={null}>

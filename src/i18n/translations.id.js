@@ -125,6 +125,7 @@ export default {
     faq4A: 'Anda mengontrol DPI dan kualitas gambar. Nilai lebih rendah berarti file lebih kecil dan kualitas visual sedikit lebih rendah.',
     readyTitle: 'Siap mengompres?',
     readySubtitle: 'Pilih PDF Anda atau seret dan lepas di bawah.',
+    cmsSectionAria: 'Pengenalan situs',
   },
   tools: {
     pageTitle: 'Semua alat PDF',
