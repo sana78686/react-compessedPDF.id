@@ -58,11 +58,15 @@ function cmsSeoInjectPlugin(viteEnv) {
           if (!data) {
             const apiBase = (
               viteEnv.VITE_API_URL ||
-              (isDevServer ? 'http://localhost:8000' : 'https://app.apimstec.com')
+              (isDevServer ? 'http://localhost:3000' : 'https://app.apimstec.com')
             ).replace(/\/$/, '')
-            const siteDomain = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
+            const siteDomain = normalizeSiteDomain(
+              viteEnv.VITE_SITE_DOMAIN || (isDevServer ? 'compresspdf.local' : 'compresspdf.id'),
+            )
             const useDomainPath = viteEnv.VITE_API_DOMAIN_PATH !== 'false'
-            const homeQuery = '?locale=id'
+            // Baked into index.html for crawlers without JS. Must match the locale you optimize for (often `en` for English-first sites).
+            const buildSeoLocale = String(viteEnv.VITE_BUILD_SEO_LOCALE || 'id').trim().toLowerCase() || 'id'
+            const homeQuery = `?locale=${encodeURIComponent(buildSeoLocale)}`
             const tryUrls = useDomainPath
               ? [
                   { url: `${apiBase}/${siteDomain}/api/public/home-content${homeQuery}`, headers: { Accept: 'application/json' } },
@@ -96,7 +100,7 @@ function cmsSeoInjectPlugin(viteEnv) {
               .replace(/>/g, '&gt;')
 
           const rawTitle  = data.meta_title      || SITE_NAME
-          const title     = rawTitle === SITE_NAME ? SITE_NAME : `${rawTitle} | ${SITE_NAME}`
+          const title     = rawTitle.trim() ? rawTitle.trim() : SITE_NAME
           const desc      = data.meta_description || ''
           const keywords  = data.meta_keywords    || ''
           const ogTitle   = data.og_title         || rawTitle
@@ -156,7 +160,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), cmsSeoInjectPlugin(viteEnv), modulepreloadPlugin()],
     server: {
-      port: 5000,
+      host: '127.0.0.1',
+      port: 2000,
+      strictPort: true,
     },
     build: {
       rollupOptions: {

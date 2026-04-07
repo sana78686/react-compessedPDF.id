@@ -4,6 +4,7 @@ import { getPageBySlug } from '../api/cms'
 import { SeoHead } from '../components/SeoHead'
 import { getPreferredLang, supportedLangs } from '../i18n/translations'
 import { buildHreflangAlternates } from '../utils/seoHreflang'
+import { absolutizeCmsHtml } from '../utils/cmsAssetUrl'
 import './CmsPage.css'
 
 export default function CmsPage() {
@@ -84,7 +85,7 @@ export default function CmsPage() {
         </header>
         <div
           className="cms-page-content"
-          dangerouslySetInnerHTML={{ __html: data.content || '' }}
+          dangerouslySetInnerHTML={{ __html: absolutizeCmsHtml(data.content || '') }}
         />
         <footer className="cms-page-footer">
           <Link to={`/${langPrefix}`} className="cms-page-back">

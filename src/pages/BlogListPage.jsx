@@ -4,6 +4,7 @@ import { useTranslation } from '../i18n/useTranslation'
 import { getBlogs } from '../api/cms'
 import { SeoHead } from '../components/SeoHead'
 import { getPreferredLang, supportedLangs } from '../i18n/translations'
+import { resolveCmsMediaUrl } from '../utils/cmsAssetUrl'
 import './BlogListPage.css'
 
 function formatDate(iso) {
@@ -76,7 +77,7 @@ export default function BlogListPage() {
               <div className="blog-card-image-wrap">
                 {(post.og_image || post.image) ? (
                   <img
-                    src={post.og_image || post.image}
+                    src={resolveCmsMediaUrl(post.og_image || post.image)}
                     alt={post.title ? `Cover image for ${post.title}` : 'Blog post'}
                     className="blog-card-image"
                     loading="lazy"

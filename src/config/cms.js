@@ -18,7 +18,8 @@ export function normalizeSiteDomain(value) {
     .split('/')[0]
 }
 
-const API_FALLBACK_DEV = 'http://localhost:8000'
+/** Local Laravel default — keep in sync with `php artisan serve --port=…` / `.env.development`. */
+const API_FALLBACK_DEV = 'http://localhost:3000'
 const API_FALLBACK_PROD = 'https://app.apimstec.com'
 
 /** Base URL of Laravel (no trailing slash). Same as VITE_API_URL when set. */
@@ -33,5 +34,6 @@ export const CMS_API_BASE = String(
  * Must match CMS → Domains → `domain` for the tenant DB.
  */
 export const CMS_SITE_DOMAIN = normalizeSiteDomain(
-  import.meta.env.VITE_SITE_DOMAIN || 'compresspdf.id',
+  import.meta.env.VITE_SITE_DOMAIN ||
+    (import.meta.env.DEV ? 'compresspdf.local' : 'compresspdf.id'),
 )

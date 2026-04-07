@@ -5,6 +5,7 @@ import { SeoHead } from '../components/SeoHead'
 import { useTranslation } from '../i18n/useTranslation'
 import { getPreferredLang, supportedLangs } from '../i18n/translations'
 import { buildHreflangAlternates } from '../utils/seoHreflang'
+import { absolutizeCmsHtml, resolveCmsMediaUrl } from '../utils/cmsAssetUrl'
 import './CmsPage.css'
 
 function formatDate(iso) {
@@ -93,7 +94,7 @@ export default function CmsBlog() {
     )
   }
 
-  const heroImage = data.og_image || data.image
+  const heroImage = resolveCmsMediaUrl(data.og_image || data.image)
   const authorName = data.author?.name
 
   return (
@@ -156,7 +157,7 @@ export default function CmsBlog() {
       </header>
       <div
         className="cms-page-content cms-blog-content"
-        dangerouslySetInnerHTML={{ __html: data.content || '' }}
+        dangerouslySetInnerHTML={{ __html: absolutizeCmsHtml(data.content || '') }}
       />
       <footer className="cms-page-footer">
         <Link to={`/${langPrefix}/blog`} className="cms-page-back">

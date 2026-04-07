@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { COMPRESS_PDF_EN } from '../constants/brand'
+import { resolveCmsMediaUrl } from '../utils/cmsAssetUrl'
 
 const DEFAULT_OG_IMAGE = '/logos/compresspdf.png'
 const SITE_NAME = COMPRESS_PDF_EN
@@ -15,7 +16,7 @@ const SITE_NAME = COMPRESS_PDF_EN
  *  - The last SeoHead to mount wins for any given tag.
  *  - Use ogType="article" for blog/article posts, "website" for pages.
  *
- * @param {{ title, description, keywords, canonical, robots, ogTitle, ogDescription, ogImage, ogType, hreflangAlternates?: { hreflang: string, href: string }[] }} props
+ * @param {{ title, description, keywords, canonical, robots, ogTitle, ogDescription, ogImage, ogType, appendBrandSuffix?: boolean, hreflangAlternates?: { hreflang: string, href: string }[] }} props
  */
 export function SeoHead({
   title = '',
@@ -27,9 +28,14 @@ export function SeoHead({
   ogDescription,
   ogImage,
   ogType = 'website',
+  /** When false, `title` is used as the full document title (CMS SEO fields are already complete). */
+  appendBrandSuffix = true,
   hreflangAlternates = null,
 }) {
-  const siteTitle    = title ? `${title} | ${SITE_NAME}` : SITE_NAME
+  const t = title && String(title).trim() ? String(title).trim() : ''
+  const siteTitle = t
+    ? (appendBrandSuffix ? `${t} | ${SITE_NAME}` : t)
+    : SITE_NAME
   const ogTitleFinal = ogTitle ?? title
   const ogDescFinal  = ogDescription ?? description
 
@@ -69,7 +75,9 @@ export function SeoHead({
     setMeta('robots', robots)
     setMeta('og:title',        ogTitleFinal, true)
     setMeta('og:description',  ogDescFinal,  true)
-    const ogImageUrl = ogImage ? toAbsolute(ogImage) : toAbsolute(DEFAULT_OG_IMAGE)
+    const ogImageUrl = ogImage
+      ? toAbsolute(resolveCmsMediaUrl(ogImage))
+      : toAbsolute(resolveCmsMediaUrl(DEFAULT_OG_IMAGE))
     setMeta('og:image',     ogImageUrl, true)
     setMeta('og:type',      ogType,     true)
     setMeta('og:url',       origin && typeof window !== 'undefined' ? window.location.href : '', true)

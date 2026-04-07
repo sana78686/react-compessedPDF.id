@@ -30,9 +30,35 @@ function headAlreadyHasEquivalentScript(node) {
   return false
 }
 
+const HEAD_INJECT_TAGS = new Set(['meta', 'link', 'script', 'style', 'noscript', 'base'])
+
+/**
+ * Collect injectable head elements from a snippet tree (unwraps wrappers like a single root div).
+ * @param {ParentNode} root
+ * @returns {Element[]}
+ */
+function collectHeadElements(root) {
+  /** @type {Element[]} */
+  const out = []
+  function walk(parent) {
+    parent.childNodes.forEach((node) => {
+      if (node.nodeType !== Node.ELEMENT_NODE) return
+      const tag = node.tagName.toLowerCase()
+      if (HEAD_INJECT_TAGS.has(tag)) {
+        out.push(node)
+        return
+      }
+      walk(node)
+    })
+  }
+  walk(root)
+  return out
+}
+
 /**
  * Injects CMS-provided HTML into document.head (meta tags, external scripts, inline gtag, etc.).
  * Scripts are recreated so they execute (innerHTML alone does not run scripts).
+ * Nested tags (e.g. inside a wrapper div) are found and injected.
  * @param {string} html
  * @returns {Element[]} Appended nodes — remove these on cleanup.
  */
@@ -44,8 +70,7 @@ export function injectHeadSnippet(html) {
   tpl.innerHTML = trimmed
 
   const injected = []
-  tpl.content.childNodes.forEach((node) => {
-    if (node.nodeType !== Node.ELEMENT_NODE) return
+  collectHeadElements(tpl.content).forEach((node) => {
     const tag = node.tagName.toLowerCase()
 
     if (tag === 'script') {

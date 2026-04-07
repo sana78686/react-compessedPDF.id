@@ -12,9 +12,10 @@
     <link rel="preconnect" href="https://flagcdn.com" crossorigin />
     <link rel="dns-prefetch" href="https://flagcdn.com" />
     <meta name="theme-color" content="#ffffff" />
-    <!-- Third-party &lt;head&gt; scripts (GA4, GSC verification, GTM): configure in CMS
-         — SEO → Analytics (GA4 ID + custom HTML) or Content manager → Home → head snippet.
-         Injected at runtime in src/components/DynamicSeoHead.jsx from /api/public/home-content.
+    <!-- Meta title/description/OG and CMS &lt;head&gt; snippet are not duplicated here as React
+         components: see src/components/SeoHead.jsx (injects meta at runtime) and
+         src/components/DynamicSeoHead.jsx (home + compress routes: CMS SEO + head snippet + GA4).
+         Configure in CMS: Content manager → Home (head snippet), SEO → Analytics (GA4).
          Optional dev fallback: VITE_GA_MEASUREMENT_ID in .env -->
     <!-- Static fallbacks — overwritten at build time by cms-seo-inject plugin from CMS API,
          and again at runtime by React SeoHead from CMS API for regular users. -->

@@ -5,6 +5,7 @@ import { getHomeSeo } from '../api/cms'
 import { defaultLang } from '../i18n/translations'
 import { injectHeadSnippet } from '../utils/injectHeadSnippet'
 import { headSnippetReferencesGaId, injectGa4 } from '../utils/injectGa4'
+import { isCmsHomeSeoRoute } from '../utils/publicSeoRoutes'
 
 const envGaFallback = (typeof import.meta.env.VITE_GA_MEASUREMENT_ID === 'string'
   ? import.meta.env.VITE_GA_MEASUREMENT_ID
@@ -102,9 +103,14 @@ export default function DynamicSeoHead() {
     }
   }, [headSnippet, gaMeasurementId])
 
+  if (!isCmsHomeSeoRoute(location.pathname)) {
+    return null
+  }
+
   return (
     <SeoHead
       key={location.pathname}
+      appendBrandSuffix={false}
       title={seoData.meta_title}
       description={seoData.meta_description}
       keywords={seoData.meta_keywords}
