@@ -10,6 +10,42 @@ function normalizeSiteDomain(value) {
     .split('/')[0]
 }
 
+/** Public marketing origin for sitemap &lt;loc&gt; URLs (https://example.com — no trailing slash). */
+function siteOriginFromEnv(viteEnv) {
+  const explicit = String(viteEnv.VITE_PUBLIC_SITE_ORIGIN || '').trim().replace(/\/+$/, '')
+  if (explicit) return explicit
+  const d = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
+  if (d === 'localhost' || d === '127.0.0.1') return `http://${d}`
+  return `https://${d}`
+}
+
+function localesForSitemapFallback(viteEnv) {
+  const s = String(viteEnv.VITE_CMS_PREFETCH_LOCALES || 'id,en,ms,es,fr,ar,ru').trim()
+  const list = s.split(/[\s,]+/).filter(Boolean)
+  return list.length ? list : ['id', 'en']
+}
+
+function xmlEscape(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;')
+}
+
+/** Minimal valid sitemap when CMS download fails (avoids SPA index.html being served as “sitemap”). */
+function buildFallbackSitemapXml(origin, locales) {
+  const lastmod = new Date().toISOString().slice(0, 10)
+  const lines = locales.map(
+    (loc) =>
+      `  <url>\n    <loc>${xmlEscape(`${origin}/${loc}/`)}</loc>\n    <lastmod>${lastmod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>`,
+  )
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${lines.join('\n')}\n</urlset>\n`
+}
+
+function buildFallbackRobotsTxt(origin) {
+  return `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
+}
+
 function encodePathSegments(rel) {
   return String(rel || '')
     .replace(/^\/+/, '')
@@ -217,22 +253,58 @@ function fetchSeoStaticPlugin(viteEnv) {
       }
       const apiBase = (viteEnv.VITE_API_URL || 'https://app.apimstec.com').replace(/\/$/, '')
       const siteDomain = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
-      const files = [
-        [`${apiBase}/${siteDomain}/sitemap.xml`, 'sitemap.xml'],
-        [`${apiBase}/${siteDomain}/robots.txt`, 'robots.txt'],
-      ]
-      for (const [url, name] of files) {
-        try {
-          const res = await fetch(url, { headers: { Accept: '*/*' } })
-          if (!res.ok) {
-            console.warn(`[fetch-seo-static] ${name}: HTTP ${res.status} (${url})`)
-            continue
-          }
-          fs.writeFileSync(path.join(distDir, name), Buffer.from(await res.arrayBuffer()))
-          console.log(`[fetch-seo-static] Wrote dist/${name} from CMS ✓`)
-        } catch (e) {
-          console.warn(`[fetch-seo-static] ${name}: ${e?.message || e}`)
+      const siteOrigin = siteOriginFromEnv(viteEnv)
+      const locales = localesForSitemapFallback(viteEnv)
+
+      async function tryWriteFromCms(url, name) {
+        const res = await fetch(url, {
+          headers: {
+            Accept: name === 'sitemap.xml' ? 'application/xml,text/xml,*/*' : '*/*',
+            'User-Agent': 'compressedPDF-react-build/fetch-seo-static',
+          },
+        })
+        if (!res.ok) {
+          return false
         }
+        const buf = Buffer.from(await res.arrayBuffer())
+        const head = buf.slice(0, 80).toString('utf8').trimStart()
+        if (name === 'sitemap.xml' && /<!doctype html|<html[\s>]/i.test(head)) {
+          console.warn(`[fetch-seo-static] ${name}: response looks like HTML, not XML (${url})`)
+          return false
+        }
+        fs.writeFileSync(path.join(distDir, name), buf)
+        console.log(`[fetch-seo-static] Wrote dist/${name} from CMS ✓`)
+        return true
+      }
+
+      const sitemapUrl = `${apiBase}/${siteDomain}/sitemap.xml`
+      let sitemapOk = false
+      try {
+        sitemapOk = await tryWriteFromCms(sitemapUrl, 'sitemap.xml')
+      } catch (e) {
+        console.warn(`[fetch-seo-static] sitemap.xml: ${e?.message || e} (${sitemapUrl})`)
+      }
+      if (!sitemapOk) {
+        console.warn(`[fetch-seo-static] sitemap.xml: CMS fetch failed or non-XML (${sitemapUrl})`)
+        const xml = buildFallbackSitemapXml(siteOrigin, locales)
+        fs.writeFileSync(path.join(distDir, 'sitemap.xml'), xml, 'utf8')
+        console.warn(
+          '[fetch-seo-static] Wrote dist/sitemap.xml minimal fallback (locale home URLs only). Prefer fixing CMS/WAF access and re-building, or proxy /sitemap.xml to the CMS in nginx.',
+        )
+      }
+
+      const robotsUrl = `${apiBase}/${siteDomain}/robots.txt`
+      let robotsOk = false
+      try {
+        robotsOk = await tryWriteFromCms(robotsUrl, 'robots.txt')
+      } catch (e) {
+        console.warn(`[fetch-seo-static] robots.txt: ${e?.message || e} (${robotsUrl})`)
+      }
+      if (!robotsOk) {
+        fs.writeFileSync(path.join(distDir, 'robots.txt'), buildFallbackRobotsTxt(siteOrigin), 'utf8')
+        console.warn(
+          '[fetch-seo-static] robots.txt: CMS fetch failed — wrote minimal file with Sitemap line.',
+        )
       }
     },
   }
