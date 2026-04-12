@@ -76,6 +76,39 @@ function buildFallbackRobotsTxt(origin) {
   return `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`
 }
 
+/**
+ * If a Sitemap: line points at the CMS app host (same as VITE_API_URL), rewrite it to the
+ * public marketing origin so https://domain.com/robots.txt matches Google Search Console.
+ */
+function normalizeRobotsTxtSitemapForPublicSite(text, viteEnv, apiBase) {
+  const siteOrigin = siteOriginFromEnv(viteEnv).replace(/\/+$/, '')
+  if (!siteOrigin) return text
+  let cmsHostname = ''
+  try {
+    cmsHostname = new URL(/^[a-z]+:\/\//i.test(apiBase) ? apiBase : `https://${apiBase}`).hostname
+  } catch {
+    return text
+  }
+  if (!cmsHostname) return text
+  const lines = text.split(/\r\n|\n|\r/)
+  const joined = lines
+    .map((line) => {
+      const m = /^\s*Sitemap:\s*(\S+)/i.exec(line)
+      if (!m) return line
+      try {
+        const parsed = new URL(m[1])
+        if (parsed.hostname === cmsHostname && /sitemap\.xml$/i.test(parsed.pathname)) {
+          return `Sitemap: ${siteOrigin}/sitemap.xml`
+        }
+      } catch {
+        return line
+      }
+      return line
+    })
+    .join('\n')
+  return joined
+}
+
 function encodePathSegments(rel) {
   return String(rel || '')
     .replace(/^\/+/, '')
@@ -370,7 +403,8 @@ function fetchSeoStaticPlugin(viteEnv) {
   return {
     name: 'fetch-seo-static',
     apply: 'build',
-    async closeBundle() {
+    /** Run after Rollup writes chunks so we always overwrite any stale public/ copies from renderStart. */
+    async writeBundle() {
       if (String(viteEnv.VITE_FETCH_SEO_FILES || 'true').toLowerCase() === 'false') {
         return
       }
@@ -401,8 +435,13 @@ function fetchSeoStaticPlugin(viteEnv) {
           console.warn(`[fetch-seo-static] ${name}: response looks like HTML, not XML (${url})`)
           return false
         }
-        fs.writeFileSync(path.join(distDir, name), buf)
-        console.log(`[fetch-seo-static] Wrote dist/${name} from CMS ✓`)
+        let out = buf
+        if (name === 'robots.txt') {
+          const normalized = normalizeRobotsTxtSitemapForPublicSite(buf.toString('utf8'), viteEnv, apiBase)
+          out = Buffer.from(normalized, 'utf8')
+        }
+        fs.writeFileSync(path.join(distDir, name), out)
+        console.log(`[fetch-seo-static] Wrote dist/${name} from CMS (public domain for GSC) ✓`)
         return true
       }
 
@@ -590,6 +629,9 @@ function cmsPrefetchPlugin(viteEnv) {
 export default defineConfig(({ mode }) => {
   const viteEnv = loadEnv(mode, process.cwd(), '')
   const cmsDev = (viteEnv.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
+  const siteDomainForProxy = normalizeSiteDomain(viteEnv.VITE_SITE_DOMAIN || 'compresspdf.id')
+  const cmsRobotsPath = `/${siteDomainForProxy}/robots.txt`
+  const cmsSitemapPath = `/${siteDomainForProxy}/sitemap.xml`
   return {
     plugins: [
       react(),
@@ -610,6 +652,17 @@ export default defineConfig(({ mode }) => {
           target: cmsDev,
           changeOrigin: true,
           rewrite: (p) => p.replace(/^\/uploads/, '/storage'),
+        },
+        // Same CMS content as https://app.../{domain}/robots.txt — not the static public/ placeholder
+        '/robots.txt': {
+          target: cmsDev,
+          changeOrigin: true,
+          rewrite: () => cmsRobotsPath,
+        },
+        '/sitemap.xml': {
+          target: cmsDev,
+          changeOrigin: true,
+          rewrite: () => cmsSitemapPath,
         },
       },
     },
