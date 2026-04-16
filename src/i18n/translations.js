@@ -208,6 +208,11 @@ export const translations = {
       subjectFeedback: 'Feedback',
       subjectOther: 'Other',
     },
+    breadcrumb: {
+      result: 'Result',
+      page: 'Page',
+      legal: 'Legal',
+    },
     blog: {
       listTitle: 'Blog',
       listIntro: 'Latest articles and updates.',

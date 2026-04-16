@@ -5,9 +5,7 @@ import { prepareCmsClient, startRevisionPolling } from './api/cms.js'
 import './index.css'
 import App from './App.jsx'
 
-async function boot() {
-  await prepareCmsClient()
-  startRevisionPolling()
+function boot() {
   createRoot(document.getElementById('root')).render(
     <StrictMode>
       <BrowserRouter>
@@ -15,6 +13,7 @@ async function boot() {
       </BrowserRouter>
     </StrictMode>,
   )
+  void prepareCmsClient().then(() => startRevisionPolling())
 }
 
 boot()

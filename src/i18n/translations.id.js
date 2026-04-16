@@ -204,6 +204,11 @@ export default {
     subjectFeedback: 'Masukan',
     subjectOther: 'Lainnya',
   },
+  breadcrumb: {
+    result: 'Hasil',
+    page: 'Halaman',
+    legal: 'Hukum',
+  },
   blog: {
     listTitle: 'Blog',
     listIntro: 'Artikel dan pembaruan terbaru.',

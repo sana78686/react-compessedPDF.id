@@ -6,6 +6,7 @@ import { langShortLabel } from '../i18n/langMeta'
 import { useLang } from '../hooks/useLang'
 import { getPages, getLegalNav, getFaq } from '../api/cms'
 import BrandLogo from './BrandLogo'
+import Breadcrumbs from './Breadcrumbs'
 import { COMPRESS_PDF_EN } from '../constants/brand'
 import LangFlag from './LangFlag'
 import { ucWords } from '../utils/ucWords'
@@ -164,6 +165,7 @@ export default function SiteLayout({ children }) {
       </header>
 
       <main id="main-content" className="main cms-main" tabIndex="-1">
+        <Breadcrumbs />
         {children}
       </main>
 
